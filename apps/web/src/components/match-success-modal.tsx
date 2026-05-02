@@ -15,10 +15,12 @@ export function MatchSuccessModal({
   card,
   open,
   onClose,
+  onContactRequest,
 }: {
   card?: MockRecommendation;
   open: boolean;
   onClose: () => void;
+  onContactRequest?: (message: string) => void;
 }) {
   return (
     <AnimatePresence>
@@ -66,7 +68,9 @@ export function MatchSuccessModal({
             </div>
 
             <div className="mt-6 flex gap-3">
-              <Button className="flex-1">发送联系申请</Button>
+              <Button className="flex-1" onClick={() => onContactRequest?.(icebreakers[0])}>
+                发送联系申请
+              </Button>
               <Button variant="secondary" className="flex-1" onClick={onClose}>
                 继续滑卡
               </Button>

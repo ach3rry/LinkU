@@ -31,12 +31,12 @@ export class JwtAuthGuard implements CanActivate {
 
     try {
       const payload = await this.jwtService.verifyAsync<JwtPayload>(token, {
-        secret: this.getJwtSecret()
+        secret: this.getJwtSecret(),
       });
 
       request.user = {
         ...payload,
-        id: payload.sub
+        id: payload.sub,
       };
 
       return true;
@@ -54,4 +54,3 @@ export class JwtAuthGuard implements CanActivate {
     return this.configService.get<string>("JWT_SECRET") ?? "linku-dev-secret-change-me";
   }
 }
-

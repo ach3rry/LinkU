@@ -5,7 +5,7 @@ export const relationshipBoundaryMap = {
   study_only: RelationshipBoundary.STUDY_ONLY,
   activity_partner: RelationshipBoundary.ACTIVITY_PARTNER,
   light_social: RelationshipBoundary.LIGHT_SOCIAL,
-  open_to_relationship: RelationshipBoundary.OPEN_TO_RELATIONSHIP
+  open_to_relationship: RelationshipBoundary.OPEN_TO_RELATIONSHIP,
 } as const;
 
 export const profileUpsertSchema = z.object({
@@ -19,8 +19,7 @@ export const profileUpsertSchema = z.object({
   relationshipBoundary: z
     .enum(["study_only", "activity_partner", "light_social", "open_to_relationship"])
     .default("study_only"),
-  safetyPreference: z.record(z.unknown()).default({})
+  safetyPreference: z.record(z.unknown()).default({}),
 });
 
 export type ProfileUpsertInput = z.infer<typeof profileUpsertSchema>;
-

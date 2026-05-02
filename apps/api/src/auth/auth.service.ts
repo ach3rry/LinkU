@@ -23,7 +23,7 @@ export class AuthService {
       nickname: input.nickname,
       school: input.school,
       city: input.city ?? "上海",
-      role
+      role,
     });
 
     const token = await this.jwtService.signAsync(
@@ -31,17 +31,17 @@ export class AuthService {
         sub: user.id,
         role: user.role,
         nickname: user.nickname,
-        email: user.email
+        email: user.email,
       },
       {
         secret: this.getJwtSecret(),
-        expiresIn: "7d"
+        expiresIn: "7d",
       },
     );
 
     return {
       token,
-      user
+      user,
     };
   }
 
@@ -58,4 +58,3 @@ export class AuthService {
     return this.configService.get<string>("JWT_SECRET") ?? "linku-dev-secret-change-me";
   }
 }
-

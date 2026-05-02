@@ -10,4 +10,3 @@ export class ZonesController {
     return this.zonesService.listEnabled();
   }
 }
-

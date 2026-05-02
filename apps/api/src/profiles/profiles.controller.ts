@@ -23,4 +23,3 @@ export class ProfilesController {
     return this.profilesService.upsertMine(user.id, body);
   }
 }
-

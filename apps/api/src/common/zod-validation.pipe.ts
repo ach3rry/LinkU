@@ -11,11 +11,10 @@ export class ZodValidationPipe<T> implements PipeTransform<unknown, T> {
     if (!result.success) {
       throw new BadRequestException({
         message: "请求参数不符合要求",
-        issues: result.error.flatten()
+        issues: result.error.flatten(),
       });
     }
 
     return result.data;
   }
 }
-

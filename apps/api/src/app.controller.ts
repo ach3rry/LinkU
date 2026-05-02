@@ -7,8 +7,7 @@ export class AppController {
     return {
       status: "ok",
       service: "LinkU API",
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
   }
 }
-

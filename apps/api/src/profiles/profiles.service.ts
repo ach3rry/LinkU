@@ -10,8 +10,8 @@ export class ProfilesService {
   async findMine(userId: string) {
     const profile = await this.prisma.profile.findUnique({
       where: {
-        userId
-      }
+        userId,
+      },
     });
 
     if (!profile) {
@@ -24,7 +24,7 @@ export class ProfilesService {
   upsertMine(userId: string, input: ProfileUpsertInput) {
     return this.prisma.profile.upsert({
       where: {
-        userId
+        userId,
       },
       create: {
         userId,
@@ -36,7 +36,7 @@ export class ProfilesService {
         bio: input.bio,
         gender: input.gender,
         relationshipBoundary: relationshipBoundaryMap[input.relationshipBoundary],
-        safetyPreference: input.safetyPreference as Prisma.InputJsonValue
+        safetyPreference: input.safetyPreference as Prisma.InputJsonValue,
       },
       update: {
         school: input.school,
@@ -47,8 +47,8 @@ export class ProfilesService {
         bio: input.bio,
         gender: input.gender,
         relationshipBoundary: relationshipBoundaryMap[input.relationshipBoundary],
-        safetyPreference: input.safetyPreference as Prisma.InputJsonValue
-      }
+        safetyPreference: input.safetyPreference as Prisma.InputJsonValue,
+      },
     });
   }
 }

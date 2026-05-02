@@ -10,22 +10,22 @@ export class CardsService {
   async listMine(userId: string) {
     return this.prisma.card.findMany({
       where: {
-        userId
+        userId,
       },
       include: {
-        zone: true
+        zone: true,
       },
       orderBy: {
-        createdAt: "desc"
-      }
+        createdAt: "desc",
+      },
     });
   }
 
   async create(userId: string, input: CardCreateInput) {
     const zone = await this.prisma.zone.findUnique({
       where: {
-        code: publicZoneToPrisma[input.zone]
-      }
+        code: publicZoneToPrisma[input.zone],
+      },
     });
 
     if (!zone) {
@@ -47,11 +47,11 @@ export class CardsService {
         location: input.location,
         onlineMode: publicOnlineModeToPrisma[input.onlineMode],
         status: CardStatus.PENDING,
-        aiGenerated: input.aiGenerated
+        aiGenerated: input.aiGenerated,
       },
       include: {
-        zone: true
-      }
+        zone: true,
+      },
     });
   }
 }

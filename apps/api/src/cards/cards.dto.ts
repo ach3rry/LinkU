@@ -4,13 +4,13 @@ import { z } from "zod";
 export const publicZoneToPrisma: Record<"tutoring" | "buddy" | "premium", ZoneCode> = {
   tutoring: ZoneCode.TUTORING,
   buddy: ZoneCode.BUDDY,
-  premium: ZoneCode.PREMIUM
+  premium: ZoneCode.PREMIUM,
 };
 
 export const publicOnlineModeToPrisma: Record<"online" | "offline" | "hybrid", OnlineMode> = {
   online: OnlineMode.ONLINE,
   offline: OnlineMode.OFFLINE,
-  hybrid: OnlineMode.HYBRID
+  hybrid: OnlineMode.HYBRID,
 };
 
 export const cardCreateSchema = z
@@ -26,12 +26,11 @@ export const cardCreateSchema = z
     schedule: z.record(z.unknown()).default({}),
     location: z.string().trim().max(80).optional(),
     onlineMode: z.enum(["online", "offline", "hybrid"]).default("hybrid"),
-    aiGenerated: z.boolean().default(false)
+    aiGenerated: z.boolean().default(false),
   })
   .refine((value) => !value.priceMin || !value.priceMax || value.priceMin <= value.priceMax, {
     message: "最低价格不能高于最高价格",
-    path: ["priceMin"]
+    path: ["priceMin"],
   });
 
 export type CardCreateInput = z.infer<typeof cardCreateSchema>;
-

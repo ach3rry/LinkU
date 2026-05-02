@@ -5,7 +5,7 @@ import { PrismaService } from "../prisma/prisma.service";
 const zoneCodeToPublic: Record<ZoneCode, "tutoring" | "buddy" | "premium"> = {
   TUTORING: "tutoring",
   BUDDY: "buddy",
-  PREMIUM: "premium"
+  PREMIUM: "premium",
 };
 
 @Injectable()
@@ -15,17 +15,16 @@ export class ZonesService {
   async listEnabled() {
     const zones = await this.prisma.zone.findMany({
       where: {
-        enabled: true
+        enabled: true,
       },
       orderBy: {
-        name: "asc"
-      }
+        name: "asc",
+      },
     });
 
     return zones.map((zone) => ({
       ...zone,
-      code: zoneCodeToPublic[zone.code]
+      code: zoneCodeToPublic[zone.code],
     }));
   }
 }
-

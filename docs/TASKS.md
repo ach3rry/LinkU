@@ -61,12 +61,12 @@
 
 ## Phase 5 Swipe Core
 
-- [ ] Recommendations API
-- [ ] SwipeCard component
-- [ ] Left/right swipe
-- [ ] Swipe persistence
-- [ ] Match creation
-- [ ] Contact request entry
+- [x] Recommendations API
+- [x] SwipeCard component
+- [x] Left/right swipe
+- [x] Swipe persistence
+- [x] Match creation
+- [x] Contact request entry
 
 ## Phase 6 AI Link
 

@@ -23,4 +23,3 @@ export class CardsController {
     return this.cardsService.create(user.id, body);
   }
 }
-

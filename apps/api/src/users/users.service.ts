@@ -17,7 +17,7 @@ export class UsersService {
   async upsertMockUser(input: UpsertMockUserInput) {
     const user = await this.prisma.user.upsert({
       where: {
-        email: input.email
+        email: input.email,
       },
       create: {
         email: input.email,
@@ -27,9 +27,9 @@ export class UsersService {
         profile: {
           create: {
             school: input.school,
-            city: input.city
-          }
-        }
+            city: input.city,
+          },
+        },
       },
       update: {
         nickname: input.nickname,
@@ -39,19 +39,19 @@ export class UsersService {
           upsert: {
             create: {
               school: input.school,
-              city: input.city
+              city: input.city,
             },
             update: {
               school: input.school,
-              city: input.city
-            }
-          }
-        }
+              city: input.city,
+            },
+          },
+        },
       },
       include: {
         profile: true,
-        subscriptions: true
-      }
+        subscriptions: true,
+      },
     });
 
     return this.toPublicUser(user);
@@ -60,12 +60,12 @@ export class UsersService {
   async findPublicById(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: {
-        id: userId
+        id: userId,
       },
       include: {
         profile: true,
-        subscriptions: true
-      }
+        subscriptions: true,
+      },
     });
 
     if (!user) {
@@ -79,4 +79,3 @@ export class UsersService {
     return user;
   }
 }
-
