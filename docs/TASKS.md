@@ -41,13 +41,13 @@
 
 ## Phase 3 Core Backend
 
-- [ ] Auth module
-- [ ] Users module
-- [ ] Profiles module
-- [ ] Zones module
-- [ ] Cards module
-- [ ] Mock login + JWT
-- [ ] Basic REST API
+- [x] Auth module
+- [x] Users module
+- [x] Profiles module
+- [x] Zones module
+- [x] Cards module
+- [x] Mock login + JWT
+- [x] Basic REST API
 
 ## Phase 4 Core Frontend
 
