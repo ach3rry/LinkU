@@ -9,11 +9,14 @@ import { CardsModule } from "./cards/cards.module";
 import { ContactRequestsModule } from "./contact-requests/contact-requests.module";
 import { MatchesModule } from "./matches/matches.module";
 import { MatchingModule } from "./matching/matching.module";
+import { PaymentsModule } from "./payments/payments.module";
+import { PremiumModule } from "./premium/premium.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { ProfilesModule } from "./profiles/profiles.module";
 import { RecommendationsModule } from "./recommendations/recommendations.module";
 import { ReportsModule } from "./reports/reports.module";
 import { SafetyModule } from "./safety/safety.module";
+import { SubscriptionsModule } from "./subscriptions/subscriptions.module";
 import { SwipesModule } from "./swipes/swipes.module";
 import { UsersModule } from "./users/users.module";
 import { ZonesModule } from "./zones/zones.module";
@@ -39,6 +42,9 @@ import { ZonesModule } from "./zones/zones.module";
     ReportsModule,
     BlocksModule,
     AdminModule,
+    SubscriptionsModule,
+    PremiumModule,
+    PaymentsModule,
   ],
   controllers: [AppController],
 })

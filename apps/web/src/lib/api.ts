@@ -189,3 +189,68 @@ export function getAdminPendingCards(token: string) {
     token,
   });
 }
+
+export type MembershipResponse = {
+  plan: string;
+  status: string;
+  source: string;
+  policy: {
+    dailySwipeLimit: number;
+    dailyRightSwipeLimit: number;
+    canSeeWhoLikedMe: boolean;
+    canUseAdvancedFilters: boolean;
+    priorityBoost: number;
+  };
+};
+
+export type UsageResponse = {
+  plan: string;
+  dailySwipeLimit: number;
+  dailyRightSwipeLimit: number;
+  swipeCount: number;
+  rightSwipeCount: number;
+  swipeRemaining: number;
+  rightSwipeRemaining: number;
+};
+
+export type PremiumEntry = {
+  id: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  tags: unknown;
+  user: {
+    nickname: string;
+    profile?: {
+      school: string;
+      major?: string | null;
+    } | null;
+  };
+};
+
+export function getMembership(token: string) {
+  return apiFetch<MembershipResponse>("/subscriptions/me", {
+    token,
+  });
+}
+
+export function getUsage(token: string) {
+  return apiFetch<UsageResponse>("/subscriptions/usage", {
+    token,
+  });
+}
+
+export function getPremiumEntries() {
+  return apiFetch<PremiumEntry[]>("/premium/entries");
+}
+
+export function createMockCheckout(token: string) {
+  return apiFetch<{
+    status: string;
+    message: string;
+    checkoutUrl: string | null;
+  }>("/payments/mock-checkout", {
+    method: "POST",
+    token,
+  });
+}

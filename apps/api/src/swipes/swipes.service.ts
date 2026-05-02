@@ -7,6 +7,7 @@ import {
 import { CardStatus, SwipeDirection } from "@prisma/client";
 import { MatchingService } from "../matching/matching.service";
 import { PrismaService } from "../prisma/prisma.service";
+import { SubscriptionsService } from "../subscriptions/subscriptions.service";
 import { CreateSwipeInput } from "./swipes.dto";
 
 @Injectable()
@@ -14,6 +15,7 @@ export class SwipesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly matchingService: MatchingService,
+    private readonly subscriptionsService: SubscriptionsService,
   ) {}
 
   async swipe(userId: string, input: CreateSwipeInput) {
@@ -40,6 +42,8 @@ export class SwipesService {
     await this.ensureNotBlocked(userId, targetCard.userId);
 
     const direction = input.direction === "right" ? SwipeDirection.RIGHT : SwipeDirection.LEFT;
+
+    await this.subscriptionsService.ensureCanSwipe(userId, direction);
 
     const swipe = await this.prisma.swipe.upsert({
       where: {

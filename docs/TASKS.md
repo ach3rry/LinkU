@@ -91,11 +91,11 @@
 
 ## 阶段 8：会员与 Premium Match mock
 
-- [ ] 每日滑卡次数 mock
-- [ ] 每日右滑次数 mock
-- [ ] 会员状态 mock
-- [ ] Premium Match 入口
-- [ ] 支付 API 占位
+- [x] 每日滑卡次数 mock
+- [x] 每日右滑次数 mock
+- [x] 会员状态 mock
+- [x] Premium Match 入口
+- [x] 支付 API 占位
 
 ## 阶段 9：验证与交付
 
