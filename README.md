@@ -104,18 +104,20 @@ OPENAI_COMPATIBLE_MODEL=
 
 ## MVP 功能清单
 
-- [ ] mock login + JWT
-- [ ] 三大专区入口
-- [ ] 用户资料创建
-- [ ] AI 或 fallback 需求解析
-- [ ] AI 或 fallback 卡片生成
-- [ ] 推荐卡片
-- [ ] 左滑 / 右滑
-- [ ] 双向匹配
-- [ ] 联系申请
-- [ ] 举报 / 拉黑
-- [ ] 管理后台基础审核
-- [ ] Premium Match mock 展示
+- [x] mock login + JWT
+- [x] 三大专区入口
+- [x] 用户资料创建
+- [x] AI 或 fallback 需求解析
+- [x] AI 或 fallback 卡片生成
+- [x] 推荐卡片
+- [x] 左滑 / 右滑
+- [x] 双向匹配
+- [x] 联系申请
+- [x] 举报 / 拉黑
+- [x] 管理后台基础审核
+- [x] Premium Match mock 展示
+
+更细的阶段任务见 [docs/TASKS.md](docs/TASKS.md)。当前已完成阶段 0-8，下一步是阶段 9：验证、测试、README 完善和部署说明。
 
 ## Roadmap
 
