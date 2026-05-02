@@ -1,106 +1,106 @@
-# LinkU MVP Tasks
+# LinkU MVP 任务清单
 
-## Phase 0 Repo Setup
+## 阶段 0：仓库初始化
 
-- [x] Initialize git repository
-- [x] Initialize pnpm workspace
-- [x] Create web app
-- [x] Create api app
-- [x] Add shared package
-- [x] Add .gitignore
-- [x] Add .env.example
-- [x] Add README
-- [x] Add ESLint / Prettier / TypeScript config
+- [x] 初始化 Git 仓库
+- [x] 初始化 pnpm workspace
+- [x] 创建 Web 前端应用
+- [x] 创建 API 后端应用
+- [x] 添加 shared 共享包
+- [x] 添加 `.gitignore`
+- [x] 添加 `.env.example`
+- [x] 添加 README
+- [x] 添加 ESLint / Prettier / TypeScript 配置
 
-## Phase 1 Docs
+## 阶段 1：产品与工程文档
 
-- [x] PRD
-- [x] Architecture
-- [x] API design
-- [x] Database design
-- [x] AI prompt design
-- [x] Roadmap
-- [x] MVP task list
+- [x] 产品需求文档 PRD
+- [x] 系统架构文档
+- [x] API 设计文档
+- [x] 数据库设计文档
+- [x] AI Prompt 设计文档
+- [x] 开发路线图
+- [x] MVP 任务清单
 
-## Phase 2 Database
+## 阶段 2：数据库设计
 
 - [x] Prisma schema
-- [x] Users
-- [x] Profiles
-- [x] Zones
-- [x] Cards
-- [x] Swipes
-- [x] Matches
-- [x] Contact requests
-- [x] Reports
-- [x] Blocks
-- [x] AI logs
-- [x] Moderation results
-- [x] Subscriptions mock
-- [x] Seed data
+- [x] 用户表
+- [x] 用户资料表
+- [x] 专区表
+- [x] 卡片表
+- [x] 滑卡记录表
+- [x] 匹配表
+- [x] 联系申请表
+- [x] 举报表
+- [x] 拉黑表
+- [x] AI 调用日志表
+- [x] 内容审核结果表
+- [x] 会员 mock 表
+- [x] 种子数据
 
-## Phase 3 Core Backend
+## 阶段 3：后端基础框架
 
-- [x] Auth module
-- [x] Users module
-- [x] Profiles module
-- [x] Zones module
-- [x] Cards module
-- [x] Mock login + JWT
-- [x] Basic REST API
+- [x] Auth 模块
+- [x] Users 模块
+- [x] Profiles 模块
+- [x] Zones 模块
+- [x] Cards 模块
+- [x] mock login + JWT
+- [x] 基础 REST API
 
-## Phase 4 Core Frontend
+## 阶段 4：前端基础页面
 
-- [x] Landing page
-- [x] Zone selection
-- [x] Onboarding
-- [x] Swipe page
-- [x] Match success
-- [x] Profile
-- [x] Admin mock
+- [x] Landing Page
+- [x] 专区选择页
+- [x] Onboarding 建卡页
+- [x] 滑卡页
+- [x] 匹配成功弹窗
+- [x] 个人中心页
+- [x] 管理后台 mock 页
 
-## Phase 5 Swipe Core
+## 阶段 5：滑卡核心闭环
 
-- [x] Recommendations API
-- [x] SwipeCard component
-- [x] Left/right swipe
-- [x] Swipe persistence
-- [x] Match creation
-- [x] Contact request entry
+- [x] 推荐卡片 API
+- [x] SwipeCard 组件
+- [x] 左滑 / 右滑交互
+- [x] 滑卡记录持久化
+- [x] 双向匹配创建
+- [x] 联系申请入口
 
-## Phase 6 AI Link
+## 阶段 6：AI Link
 
-- [ ] AI Provider abstraction
-- [ ] parse-demand prompt
-- [ ] generate-card prompt
-- [ ] match-reason prompt
-- [ ] icebreaker prompt
-- [ ] moderation prompt
-- [ ] Zod validation
-- [ ] fallback mechanism
+- [x] AI Provider 抽象
+- [x] 需求解析 Prompt
+- [x] 卡片生成 Prompt
+- [x] 匹配理由 Prompt
+- [x] 破冰话术 Prompt
+- [x] 内容审核 Prompt
+- [x] Zod 输出校验
+- [x] fallback 兜底机制
 
-## Phase 7 Safety
+## 阶段 7：安全与风控
 
-- [ ] Reports
-- [ ] Blocks
-- [ ] Sensitive keyword rules
-- [ ] Moderation workflow
-- [ ] Contact protection
-- [ ] Safety notices
-- [ ] Admin review
+- [ ] 举报功能
+- [ ] 拉黑功能
+- [ ] 敏感词规则
+- [ ] 内容审核流程
+- [ ] 联系方式保护
+- [ ] 安全提示
+- [ ] 管理后台审核
 
-## Phase 8 Premium Mock
+## 阶段 8：会员与 Premium Match mock
 
-- [ ] Daily swipe limit mock
-- [ ] Daily right-swipe limit mock
-- [ ] Membership status mock
-- [ ] Premium Match entry
-- [ ] Payment API placeholder
+- [ ] 每日滑卡次数 mock
+- [ ] 每日右滑次数 mock
+- [ ] 会员状态 mock
+- [ ] Premium Match 入口
+- [ ] 支付 API 占位
 
-## Phase 9 Verification
+## 阶段 9：验证与交付
 
-- [ ] README setup guide
-- [ ] Local verification checklist
-- [ ] Seed guide
-- [ ] Basic tests
-- [ ] Deployment notes
+- [ ] README 本地启动说明
+- [ ] 本地验证清单
+- [ ] seed 数据说明
+- [ ] 基础测试
+- [ ] 部署说明

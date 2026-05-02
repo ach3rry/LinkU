@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { AppController } from "./app.controller";
+import { AiModule } from "./ai/ai.module";
 import { AuthModule } from "./auth/auth.module";
 import { CardsModule } from "./cards/cards.module";
 import { ContactRequestsModule } from "./contact-requests/contact-requests.module";
@@ -29,6 +30,7 @@ import { ZonesModule } from "./zones/zones.module";
     SwipesModule,
     MatchesModule,
     ContactRequestsModule,
+    AiModule,
   ],
   controllers: [AppController],
 })

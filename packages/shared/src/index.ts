@@ -70,3 +70,26 @@ export const generatedCardSchema = z.object({
 });
 
 export type GeneratedCard = z.infer<typeof generatedCardSchema>;
+
+export const matchReasonSchema = z.object({
+  reason: z.string().min(1).max(180),
+  matchedFactors: z.array(z.string()).default([]),
+  confidence: z.enum(["low", "medium", "high"]).default("medium"),
+});
+
+export type MatchReason = z.infer<typeof matchReasonSchema>;
+
+export const icebreakerSchema = z.object({
+  icebreakers: z.array(z.string().min(1).max(140)).min(1).max(3),
+});
+
+export type IcebreakerResult = z.infer<typeof icebreakerSchema>;
+
+export const moderationResultSchema = z.object({
+  riskLevel: z.enum(["low", "medium", "high"]),
+  categories: z.array(z.string()).default([]),
+  actionSuggestion: z.enum(["allow", "review", "block"]),
+  reason: z.string().min(1).max(240),
+});
+
+export type ModerationResult = z.infer<typeof moderationResultSchema>;
