@@ -9,8 +9,8 @@ turbo
 coverage
 .DS_Store
 *.log
+*.tsbuildinfo
 pnpm-debug.log*
 npm-debug.log*
 yarn-debug.log*
 apps/api/generated
-
