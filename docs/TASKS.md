@@ -24,20 +24,20 @@
 
 ## Phase 2 Database
 
-- [ ] Prisma schema
-- [ ] Users
-- [ ] Profiles
-- [ ] Zones
-- [ ] Cards
-- [ ] Swipes
-- [ ] Matches
-- [ ] Contact requests
-- [ ] Reports
-- [ ] Blocks
-- [ ] AI logs
-- [ ] Moderation results
-- [ ] Subscriptions mock
-- [ ] Seed data
+- [x] Prisma schema
+- [x] Users
+- [x] Profiles
+- [x] Zones
+- [x] Cards
+- [x] Swipes
+- [x] Matches
+- [x] Contact requests
+- [x] Reports
+- [x] Blocks
+- [x] AI logs
+- [x] Moderation results
+- [x] Subscriptions mock
+- [x] Seed data
 
 ## Phase 3 Core Backend
 

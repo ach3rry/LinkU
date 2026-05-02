@@ -1,0 +1,386 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  BANNED
+}
+
+enum VerifiedStatus {
+  UNVERIFIED
+  STUDENT_VERIFIED
+  PROVIDER_VERIFIED
+}
+
+enum RelationshipBoundary {
+  STUDY_ONLY
+  ACTIVITY_PARTNER
+  LIGHT_SOCIAL
+  OPEN_TO_RELATIONSHIP
+}
+
+enum ZoneCode {
+  TUTORING
+  BUDDY
+  PREMIUM
+}
+
+enum OnlineMode {
+  ONLINE
+  OFFLINE
+  HYBRID
+}
+
+enum CardStatus {
+  DRAFT
+  PENDING
+  ACTIVE
+  REJECTED
+  HIDDEN
+}
+
+enum SwipeDirection {
+  LEFT
+  RIGHT
+}
+
+enum MatchStatus {
+  ACTIVE
+  CLOSED
+  REPORTED
+}
+
+enum ContactRequestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELLED
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWING
+  RESOLVED
+  REJECTED
+}
+
+enum ModerationRiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum ModerationAction {
+  ALLOW
+  REVIEW
+  BLOCK
+}
+
+enum SubscriptionPlan {
+  FREE
+  SEMESTER
+  PREMIUM_MOCK
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  INACTIVE
+  EXPIRED
+}
+
+model User {
+  id              String           @id @default(uuid())
+  email           String?          @unique
+  phone           String?          @unique
+  nickname        String
+  avatarUrl       String?
+  role            UserRole         @default(USER)
+  status          UserStatus       @default(ACTIVE)
+  lastActiveAt    DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  profile         Profile?
+  cards           Card[]
+  swipes          Swipe[]          @relation("SwiperSwipes")
+  matchesAsA      Match[]          @relation("MatchUserA")
+  matchesAsB      Match[]          @relation("MatchUserB")
+  contactRequests ContactRequest[] @relation("ContactRequestSender")
+  reviewsGiven    Review[]         @relation("ReviewReviewer")
+  reviewsReceived Review[]         @relation("ReviewTarget")
+  reportsMade     Report[]         @relation("Reporter")
+  reportsReceived Report[]         @relation("ReportedUser")
+  blocksMade      Block[]          @relation("Blocker")
+  blocksReceived  Block[]          @relation("BlockedUser")
+  userTags        UserTag[]
+  aiLogs          AiLog[]
+  subscriptions   Subscription[]
+  adminActions    AdminAction[]    @relation("AdminActions")
+
+  @@index([status])
+}
+
+model Profile {
+  id                   String               @id @default(uuid())
+  userId               String               @unique
+  school               String
+  campus               String?
+  city                 String
+  grade                String?
+  major                String?
+  bio                  String?
+  gender               String?
+  verifiedStatus       VerifiedStatus       @default(UNVERIFIED)
+  relationshipBoundary RelationshipBoundary @default(STUDY_ONLY)
+  safetyPreference     Json                 @default("{}")
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  user                 User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([school])
+  @@index([city])
+}
+
+model Zone {
+  id          String   @id @default(uuid())
+  code        ZoneCode @unique
+  name        String
+  description String
+  enabled     Boolean  @default(true)
+  cards       Card[]
+  swipes      Swipe[]
+  matches     Match[]
+}
+
+model Card {
+  id              String     @id @default(uuid())
+  userId          String
+  zoneId          String
+  type            String
+  title           String
+  subtitle        String
+  description     String
+  tags            Json       @default("[]")
+  priceMin        Int?
+  priceMax        Int?
+  schedule        Json       @default("{}")
+  location        String?
+  onlineMode      OnlineMode @default(HYBRID)
+  status          CardStatus @default(PENDING)
+  aiGenerated     Boolean    @default(false)
+  scoreBoost      Int        @default(0)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  zone            Zone       @relation(fields: [zoneId], references: [id], onDelete: Restrict)
+  swipesTargeting Swipe[]    @relation("TargetCardSwipes")
+  matchesAsCardA  Match[]    @relation("MatchCardA")
+  matchesAsCardB  Match[]    @relation("MatchCardB")
+  reports         Report[]   @relation("ReportedCard")
+
+  @@index([zoneId, status])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model Skill {
+  id             String   @id @default(uuid())
+  name           String
+  category       String?
+  normalizedName String   @unique
+  createdAt      DateTime @default(now())
+}
+
+model Interest {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  category  String?
+  createdAt DateTime @default(now())
+}
+
+model UserTag {
+  id        String   @id @default(uuid())
+  userId    String
+  tagType   String
+  tagValue  String
+  weight    Int      @default(1)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, tagType])
+  @@index([tagValue])
+}
+
+model Swipe {
+  id           String         @id @default(uuid())
+  swiperId     String
+  targetCardId String
+  zoneId       String
+  direction    SwipeDirection
+  createdAt    DateTime       @default(now())
+  swiper       User           @relation("SwiperSwipes", fields: [swiperId], references: [id], onDelete: Cascade)
+  targetCard   Card           @relation("TargetCardSwipes", fields: [targetCardId], references: [id], onDelete: Cascade)
+  zone         Zone           @relation(fields: [zoneId], references: [id], onDelete: Restrict)
+
+  @@unique([swiperId, targetCardId])
+  @@index([swiperId, zoneId])
+}
+
+model Match {
+  id              String           @id @default(uuid())
+  userAId         String
+  userBId         String
+  cardAId         String
+  cardBId         String
+  zoneId          String
+  status          MatchStatus      @default(ACTIVE)
+  matchScore      Int              @default(0)
+  matchReason     String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  userA           User             @relation("MatchUserA", fields: [userAId], references: [id], onDelete: Cascade)
+  userB           User             @relation("MatchUserB", fields: [userBId], references: [id], onDelete: Cascade)
+  cardA           Card             @relation("MatchCardA", fields: [cardAId], references: [id], onDelete: Cascade)
+  cardB           Card             @relation("MatchCardB", fields: [cardBId], references: [id], onDelete: Cascade)
+  zone            Zone             @relation(fields: [zoneId], references: [id], onDelete: Restrict)
+  contactRequests ContactRequest[]
+  reviews         Review[]
+
+  @@unique([userAId, userBId, cardAId, cardBId])
+  @@index([userAId, userBId])
+  @@index([zoneId, status])
+}
+
+model ContactRequest {
+  id        String               @id @default(uuid())
+  matchId   String
+  senderId  String
+  message   String
+  status    ContactRequestStatus @default(PENDING)
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+  match     Match                @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  sender    User                 @relation("ContactRequestSender", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([matchId])
+  @@index([senderId, status])
+}
+
+model Review {
+  id           String   @id @default(uuid())
+  reviewerId   String
+  targetUserId String
+  matchId      String?
+  rating       Int
+  content      String?
+  createdAt    DateTime @default(now())
+  reviewer     User     @relation("ReviewReviewer", fields: [reviewerId], references: [id], onDelete: Cascade)
+  targetUser   User     @relation("ReviewTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
+  match        Match?   @relation(fields: [matchId], references: [id], onDelete: SetNull)
+
+  @@index([targetUserId])
+  @@index([reviewerId])
+}
+
+model Report {
+  id              String       @id @default(uuid())
+  reporterId      String
+  targetUserId    String?
+  targetCardId    String?
+  targetMessageId String?
+  reason          String
+  detail          String?
+  status          ReportStatus @default(PENDING)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  reporter        User         @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  targetUser      User?        @relation("ReportedUser", fields: [targetUserId], references: [id], onDelete: SetNull)
+  targetCard      Card?        @relation("ReportedCard", fields: [targetCardId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([targetUserId])
+}
+
+model Block {
+  id            String   @id @default(uuid())
+  blockerId     String
+  blockedUserId String
+  reason        String?
+  createdAt     DateTime @default(now())
+  blocker       User     @relation("Blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blockedUser   User     @relation("BlockedUser", fields: [blockedUserId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedUserId])
+}
+
+model AiLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  feature   String
+  provider  String
+  model     String
+  inputHash String
+  output    Json     @default("{}")
+  latencyMs Int?
+  success   Boolean  @default(false)
+  error     String?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([feature, createdAt])
+  @@index([userId])
+}
+
+model ModerationResult {
+  id         String              @id @default(uuid())
+  targetType String
+  targetId   String
+  riskLevel  ModerationRiskLevel @default(LOW)
+  categories Json                @default("[]")
+  action     ModerationAction    @default(ALLOW)
+  rawResult  Json                @default("{}")
+  createdAt  DateTime            @default(now())
+
+  @@index([targetType, targetId])
+  @@index([riskLevel])
+}
+
+model Subscription {
+  id        String             @id @default(uuid())
+  userId    String
+  plan      SubscriptionPlan   @default(FREE)
+  status    SubscriptionStatus @default(ACTIVE)
+  startsAt  DateTime?
+  endsAt    DateTime?
+  source    String             @default("mock")
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+}
+
+model AdminAction {
+  id         String   @id @default(uuid())
+  adminId    String
+  action     String
+  targetType String
+  targetId   String
+  note       String?
+  createdAt  DateTime @default(now())
+  admin      User     @relation("AdminActions", fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId])
+  @@index([targetType, targetId])
+}
