@@ -42,14 +42,15 @@ export type MockLoginResponse = {
   user: ApiUser;
 };
 
-export function mockLogin() {
+export function mockLogin(role: "user" | "admin" = "user") {
   return apiFetch<MockLoginResponse>("/auth/mock-login", {
     method: "POST",
     body: JSON.stringify({
-      nickname: "LinkU 体验用户",
+      nickname: role === "admin" ? "LinkU 管理员" : "LinkU 体验用户",
       school: "同济大学",
       city: "上海",
-      email: "demo@linku.local",
+      email: role === "admin" ? "admin@linku.local" : "demo@linku.local",
+      role,
     }),
   });
 }
@@ -69,6 +70,7 @@ export type ApiRecommendationItem = {
       code: "TUTORING" | "BUDDY" | "PREMIUM";
     };
     user: {
+      id: string;
       nickname: string;
       profile?: {
         school: string;
@@ -122,5 +124,68 @@ export function createContactRequest(token: string, matchId: string, message: st
       matchId,
       message,
     }),
+  });
+}
+
+export function createReport(
+  token: string,
+  input: {
+    targetUserId?: string;
+    targetCardId?: string;
+    reason: string;
+    detail?: string;
+  },
+) {
+  return apiFetch<unknown>("/reports", {
+    method: "POST",
+    token,
+    body: JSON.stringify(input),
+  });
+}
+
+export function createBlock(token: string, blockedUserId: string, reason?: string) {
+  return apiFetch<unknown>("/blocks", {
+    method: "POST",
+    token,
+    body: JSON.stringify({
+      blockedUserId,
+      reason,
+    }),
+  });
+}
+
+export type AdminReportItem = {
+  id: string;
+  reason: string;
+  detail?: string | null;
+  status: string;
+  createdAt: string;
+  targetCard?: {
+    title: string;
+  } | null;
+  targetUser?: {
+    nickname: string;
+  } | null;
+};
+
+export type AdminCardItem = {
+  id: string;
+  title: string;
+  subtitle: string;
+  status: string;
+  zone: {
+    name: string;
+  };
+};
+
+export function getAdminReports(token: string) {
+  return apiFetch<AdminReportItem[]>("/admin/reports", {
+    token,
+  });
+}
+
+export function getAdminPendingCards(token: string) {
+  return apiFetch<AdminCardItem[]>("/admin/cards/pending", {
+    token,
   });
 }

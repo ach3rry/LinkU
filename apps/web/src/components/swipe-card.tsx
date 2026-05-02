@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, useMotionValue, useTransform } from "framer-motion";
+import { Ban, Flag } from "lucide-react";
 import { type MockRecommendation } from "../lib/mock-data";
 import { AIInsightBox } from "./ai-insight-box";
 import { TagPill } from "./tag-pill";
@@ -9,9 +10,13 @@ import { TrustBadge } from "./trust-badge";
 export function SwipeCard({
   card,
   onSwipe,
+  onReport,
+  onBlock,
 }: {
   card: MockRecommendation;
   onSwipe: (direction: "left" | "right") => void;
+  onReport?: (card: MockRecommendation) => void;
+  onBlock?: (card: MockRecommendation) => void;
 }) {
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-220, 220], [-11, 11]);
@@ -70,6 +75,25 @@ export function SwipeCard({
 
       <div className="mt-7">
         <AIInsightBox title="AI 推荐理由">{card.reason}</AIInsightBox>
+      </div>
+
+      <div className="mt-5 flex justify-end gap-2 border-t border-campus-ink/10 pt-4">
+        <button
+          type="button"
+          onClick={() => onReport?.(card)}
+          className="inline-flex items-center gap-1 rounded-full px-3 py-2 text-xs font-bold text-campus-ink/55 transition hover:bg-campus-coral/10 hover:text-campus-coral"
+        >
+          <Flag className="h-3.5 w-3.5" />
+          举报
+        </button>
+        <button
+          type="button"
+          onClick={() => onBlock?.(card)}
+          className="inline-flex items-center gap-1 rounded-full px-3 py-2 text-xs font-bold text-campus-ink/55 transition hover:bg-campus-ink/10 hover:text-campus-ink"
+        >
+          <Ban className="h-3.5 w-3.5" />
+          拉黑
+        </button>
       </div>
     </motion.article>
   );

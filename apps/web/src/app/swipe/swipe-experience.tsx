@@ -7,6 +7,8 @@ import { SwipeCard } from "../../components/swipe-card";
 import { Button } from "../../components/ui/button";
 import {
   createContactRequest,
+  createBlock,
+  createReport,
   createSwipe,
   getRecommendations,
   mockLogin,
@@ -36,6 +38,7 @@ function mapRecommendation(item: ApiRecommendationItem): MockRecommendation {
 
   return {
     id: item.card.id,
+    targetUserId: item.card.user.id,
     zone: item.card.zone.code.toLowerCase() as MockRecommendation["zone"],
     name: item.card.user.nickname,
     school: profile?.school ?? "学校待确认",
@@ -141,6 +144,32 @@ export function SwipeExperience() {
     setMatchedCard(undefined);
   }
 
+  async function reportCurrentCard(card: MockRecommendation) {
+    if (!token || mode !== "api") {
+      setStatusText("mock 模式下已展示举报入口，接入 API 后会写入举报记录。");
+      return;
+    }
+
+    await createReport(token, {
+      targetCardId: card.id,
+      targetUserId: card.targetUserId,
+      reason: "用户主动举报",
+      detail: "来自滑卡页的快速举报。",
+    });
+    setStatusText("举报已提交，管理员会在审核台处理。");
+  }
+
+  async function blockCurrentUser(card: MockRecommendation) {
+    if (!token || mode !== "api" || !card.targetUserId) {
+      setStatusText("mock 模式下已展示拉黑入口，接入 API 后会写入拉黑记录。");
+      return;
+    }
+
+    await createBlock(token, card.targetUserId, "来自滑卡页的快速拉黑。");
+    setStatusText("已拉黑该用户，后续推荐会过滤 TA 的卡片。");
+    setIndex((value) => value + 1);
+  }
+
   return (
     <div className="grid gap-8 lg:grid-cols-[0.7fr_1fr_0.72fr]">
       <aside className="space-y-5">
@@ -155,7 +184,13 @@ export function SwipeExperience() {
       </aside>
 
       <section className="flex flex-col items-center">
-        <SwipeCard key={`${current.id}-${index}`} card={current} onSwipe={handleSwipe} />
+        <SwipeCard
+          key={`${current.id}-${index}`}
+          card={current}
+          onSwipe={handleSwipe}
+          onReport={reportCurrentCard}
+          onBlock={blockCurrentUser}
+        />
         <div className="mt-7 flex gap-4">
           <Button variant="secondary" size="lg" onClick={() => handleSwipe("left")}>
             左滑跳过

@@ -2,6 +2,7 @@ import { type ZoneCode } from "@linku/shared";
 
 export type MockRecommendation = {
   id: string;
+  targetUserId?: string;
   zone: ZoneCode;
   name: string;
   school: string;
@@ -21,6 +22,7 @@ export type MockRecommendation = {
 export const mockRecommendations: MockRecommendation[] = [
   {
     id: "card-tutor-lin",
+    targetUserId: "mock-user-tutor-lin",
     zone: "tutoring",
     name: "小林学姐",
     school: "复旦大学",
@@ -38,6 +40,7 @@ export const mockRecommendations: MockRecommendation[] = [
   },
   {
     id: "card-buddy-zhou",
+    targetUserId: "mock-user-buddy-zhou",
     zone: "buddy",
     name: "晚饭搭子小周",
     school: "上海交通大学",
@@ -54,6 +57,7 @@ export const mockRecommendations: MockRecommendation[] = [
   },
   {
     id: "card-premium-senior",
+    targetUserId: "mock-user-premium-senior",
     zone: "premium",
     name: "简历修改学长",
     school: "浙江大学",
