@@ -3,6 +3,8 @@
 @tailwind utilities;
 
 :root {
+  --font-display: "Fraunces", "Georgia", "Times New Roman", serif;
+  --font-sans: "Manrope", "Aptos", "Trebuchet MS", sans-serif;
   color: #17211a;
   background: #f8f3e8;
 }
@@ -16,8 +18,16 @@ body {
   margin: 0;
   background:
     radial-gradient(circle at 20% 10%, rgba(216, 255, 122, 0.45), transparent 28rem),
-    radial-gradient(circle at 85% 18%, rgba(255, 118, 93, 0.25), transparent 24rem),
-    #f8f3e8;
+    radial-gradient(circle at 85% 18%, rgba(255, 118, 93, 0.25), transparent 24rem), #f8f3e8;
   color: #17211a;
 }
 
+::selection {
+  background: #d8ff7a;
+  color: #17211a;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}

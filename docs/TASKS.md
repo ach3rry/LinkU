@@ -51,13 +51,13 @@
 
 ## Phase 4 Core Frontend
 
-- [ ] Landing page
-- [ ] Zone selection
-- [ ] Onboarding
-- [ ] Swipe page
-- [ ] Match success
-- [ ] Profile
-- [ ] Admin mock
+- [x] Landing page
+- [x] Zone selection
+- [x] Onboarding
+- [x] Swipe page
+- [x] Match success
+- [x] Profile
+- [x] Admin mock
 
 ## Phase 5 Swipe Core
 
