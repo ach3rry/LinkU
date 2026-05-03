@@ -8,6 +8,7 @@
     "build": "pnpm -r build",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
+    "smoke": "node scripts/smoke.mjs",
     "format": "prettier --write .",
     "db:generate": "pnpm --filter @linku/api db:generate",
     "db:push": "pnpm --filter @linku/api db:push",
@@ -21,4 +22,3 @@
     "typescript-eslint": "^8.46.3"
   }
 }
-

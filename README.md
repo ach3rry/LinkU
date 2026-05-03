@@ -38,21 +38,20 @@ LinkU/
 
 项目文档、README、任务清单和阶段说明默认使用中文，必要的框架名、命令、API 名称和类型名保留英文，方便中文使用者快速理解和交接。
 
-## 本地运行
+## 本地启动
 
-首次运行前请安装依赖：
+本地开发需要 Node.js 20+、pnpm 10+ 和可访问的 PostgreSQL。首次运行建议按下面顺序启动：
 
 ```bash
 pnpm install
-```
-
-启动前端和后端：
-
-```bash
+Copy-Item .env.example .env
+pnpm db:generate
+pnpm db:push
+pnpm db:seed
 pnpm dev
 ```
 
-也可以分别启动：
+也可以分别启动前后端：
 
 ```bash
 pnpm --filter @linku/web dev
@@ -63,6 +62,8 @@ pnpm --filter @linku/api dev
 
 - Web：http://localhost:3000
 - API：http://localhost:4000
+
+更完整的本地环境说明见 [docs/LOCAL_SETUP.md](docs/LOCAL_SETUP.md)。
 
 ## 环境变量
 
@@ -78,7 +79,7 @@ OPENAI_COMPATIBLE_MODEL=
 NEXT_PUBLIC_API_BASE_URL=http://localhost:4000
 ```
 
-## 数据库迁移
+## 数据库与 seed 数据
 
 数据库使用 Prisma。MVP 阶段优先使用 `db push` 快速同步本地 schema：
 
@@ -89,6 +90,14 @@ pnpm db:seed
 ```
 
 后续进入更稳定阶段后，再切换到 Prisma migration 工作流。
+
+`pnpm db:seed` 会写入三大专区、演示用户、卡片、一次双向匹配、联系申请、举报审核示例和会员 mock 数据。常用演示账号包括：
+
+- `admin@linku.local`：管理后台演示用户
+- `student@linku.local`：家教需求方
+- `tutor@linku.local`：家教提供方
+- `buddy@linku.local`：搭子专区演示用户
+- `senior@linku.local`：Premium Match 演示用户
 
 ## AI Provider 配置
 
@@ -117,7 +126,35 @@ OPENAI_COMPATIBLE_MODEL=
 - [x] 管理后台基础审核
 - [x] Premium Match mock 展示
 
-更细的阶段任务见 [docs/TASKS.md](docs/TASKS.md)。当前已完成阶段 0-8，下一步是阶段 9：验证、测试、README 完善和部署说明。
+更细的阶段任务见 [docs/TASKS.md](docs/TASKS.md)。当前已完成阶段 0-9，MVP 已具备本地验证与交付说明。
+
+## 本地验证
+
+阶段交付前至少运行：
+
+```bash
+pnpm lint
+pnpm typecheck
+pnpm smoke
+pnpm --filter @linku/api build
+pnpm --filter @linku/web build
+```
+
+数据库相关变更还需要额外运行：
+
+```bash
+pnpm db:generate
+pnpm db:push
+pnpm db:seed
+```
+
+详细验证清单见 [docs/VERIFICATION.md](docs/VERIFICATION.md)。
+
+## 部署说明
+
+MVP 推荐将 Web、API 和 PostgreSQL 分开部署：Web 使用 Vercel 或同类 Next.js 平台，API 使用 Railway、Render、Fly.io 或自管 Node.js 服务，数据库使用托管 PostgreSQL。部署前请确认环境变量、Prisma Client 生成、构建命令和 `/health` 健康检查。
+
+详细部署步骤见 [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)。
 
 ## Roadmap
 
