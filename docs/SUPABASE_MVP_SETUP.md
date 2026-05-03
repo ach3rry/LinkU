@@ -97,6 +97,16 @@ using ("userId" = auth.uid()::text or "status" = 'ACTIVE');
 
 ## 5. 当前能力边界
 
-- 已支持：Supabase 注册 / 登录、登录用户发布待审核卡片。
-- 暂不支持：智能解析、模型生成、推荐排序、后台审核写操作、联系申请闭环。
+- 已支持：Supabase 注册 / 登录、登录用户发布待审核卡片、Supabase 直连推荐、滑卡、双向匹配、联系申请、举报和拉黑。
+- 暂不支持：AI 智能解析（有本地 fallback）、后台审核写操作。
 - 保留代码：NestJS API 和 Prisma 服务端逻辑先不删，等 Netlify + Supabase MVP 跑稳后再选择是否迁回服务端。
+
+## 6. 测试推荐和滑卡
+
+推荐和滑卡需要至少有 `status = 'ACTIVE'` 的卡片。测试步骤：
+
+1. 注册两个不同邮箱的账号。
+2. 分别建卡（使用建卡页面）。
+3. 在 Supabase SQL Editor 或通过 API 把卡片 `status` 从 `PENDING` 改为 `ACTIVE`。
+4. 用其中一个账号进入滑卡页面，应该能看到另一个账号的卡片。
+5. 右滑后切换到另一个账号，也右滑，即触发匹配。

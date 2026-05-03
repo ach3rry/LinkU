@@ -14,9 +14,19 @@ import {
   getRecommendations,
   type ApiRecommendationItem,
 } from "../../lib/api";
+import {
+  createSupabaseBlock,
+  createSupabaseContactRequest,
+  getSupabaseRecommendations,
+  createSupabaseReport,
+  createSupabaseSwipe,
+  isSupabaseDirectMode,
+  type SupabaseRecommendation,
+  useSupabaseSession,
+} from "../../lib/supabase";
 import { mockRecommendations, type MockRecommendation } from "../../lib/mock-data";
 
-type DataMode = "loading" | "api" | "mock";
+type DataMode = "loading" | "api" | "supabase" | "mock";
 
 function readTags(value: unknown) {
   return Array.isArray(value)
@@ -29,7 +39,7 @@ function readSchedule(value: unknown) {
   return "text" in value ? String(value.text ?? "时间待确认") : "时间待确认";
 }
 
-function mapRecommendation(item: ApiRecommendationItem): MockRecommendation {
+function mapApiRecommendation(item: ApiRecommendationItem): MockRecommendation {
   const profile = item.card.user.profile;
   const price =
     item.card.priceMin || item.card.priceMax
@@ -61,6 +71,38 @@ function mapRecommendation(item: ApiRecommendationItem): MockRecommendation {
   };
 }
 
+function mapSupabaseRecommendation(item: SupabaseRecommendation): MockRecommendation {
+  const profile = item.user.profile;
+  const price =
+    item.priceMin || item.priceMax
+      ? `${item.priceMin ?? "?"}-${item.priceMax ?? "?"} / h`
+      : undefined;
+
+  return {
+    id: item.id,
+    targetUserId: item.user.id,
+    zone: item.zone.code.toLowerCase() as MockRecommendation["zone"],
+    name: item.user.nickname,
+    school: profile?.school ?? "学校待确认",
+    role: [profile?.major, profile?.grade].filter(Boolean).join(" ") || "校园用户",
+    title: item.title,
+    subtitle: item.subtitle,
+    description: item.description,
+    tags: readTags(item.tags),
+    matchScore: 75,
+    reason: "同城、同专区、兴趣匹配",
+    price,
+    schedule: readSchedule(item.schedule),
+    mode:
+      item.onlineMode === "ONLINE"
+        ? "线上"
+        : item.onlineMode === "OFFLINE"
+          ? "线下"
+          : "线上 / 线下",
+    verified: profile?.verifiedStatus !== "UNVERIFIED",
+  };
+}
+
 export function SwipeExperience() {
   const [index, setIndex] = useState(0);
   const [matchedCard, setMatchedCard] = useState<MockRecommendation>();
@@ -69,6 +111,8 @@ export function SwipeExperience() {
   const [token, setToken] = useState<string>();
   const [cards, setCards] = useState<MockRecommendation[]>([]);
   const [statusText, setStatusText] = useState("正在读取推荐...");
+  const [activeZone, setActiveZone] = useState<string>("tutoring");
+  const { client: supabaseClient, session: supabaseSession } = useSupabaseSession();
 
   const current = cards.length ? cards[index % cards.length] : undefined;
   const progress = useMemo(() => index + 1, [index]);
@@ -76,7 +120,36 @@ export function SwipeExperience() {
   useEffect(() => {
     let cancelled = false;
 
-    async function bootstrapApiMode() {
+    async function bootstrap() {
+      // Try Supabase direct mode first
+      if (isSupabaseDirectMode() && supabaseClient && supabaseSession) {
+        try {
+          const recs = await getSupabaseRecommendations(
+            supabaseClient,
+            supabaseSession,
+            activeZone,
+          );
+          const mapped = recs.map(mapSupabaseRecommendation);
+
+          if (cancelled) return;
+
+          if (mapped.length === 0) {
+            setMode("supabase");
+            setStatusText("暂时没有新的推荐。发布一张卡片，让更多人找到你。");
+            return;
+          }
+
+          setCards(mapped);
+          setMode("supabase");
+          setStatusText("推荐已准备好。");
+          return;
+        } catch {
+          if (cancelled) return;
+          // Fall through to API mode
+        }
+      }
+
+      // Try API mode
       try {
         const accessToken = await getApiAccessToken();
 
@@ -87,8 +160,8 @@ export function SwipeExperience() {
           return;
         }
 
-        const recommendations = await getRecommendations(accessToken, "tutoring");
-        const apiCards = recommendations.items.map(mapRecommendation);
+        const recommendations = await getRecommendations(accessToken, activeZone);
+        const apiCards = recommendations.items.map(mapApiRecommendation);
 
         if (cancelled) return;
 
@@ -116,19 +189,36 @@ export function SwipeExperience() {
       }
     }
 
-    void bootstrapApiMode();
+    void bootstrap();
 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [activeZone, supabaseClient, supabaseSession]);
 
   async function handleSwipe(direction: "left" | "right") {
     if (!current) return;
 
     const swipedCard = current;
 
-    if (mode === "api" && token) {
+    if (mode === "supabase" && supabaseClient && supabaseSession) {
+      try {
+        const result = await createSupabaseSwipe(
+          supabaseClient,
+          supabaseSession,
+          swipedCard.id,
+          direction,
+          swipedCard.zone,
+        );
+
+        if (direction === "right" && result.match) {
+          setMatchId(result.match.id);
+          setMatchedCard(swipedCard);
+        }
+      } catch (error) {
+        setStatusText(error instanceof Error ? error.message : "滑卡没有完成，请稍后再试。");
+      }
+    } else if (mode === "api" && token) {
       try {
         const response = await createSwipe(token, swipedCard.id, direction);
 
@@ -141,9 +231,7 @@ export function SwipeExperience() {
       } catch (error) {
         setStatusText(error instanceof Error ? error.message : "滑卡没有完成，请稍后再试。");
       }
-    }
-
-    if (mode !== "api" && direction === "right" && swipedCard.matchScore >= 85) {
+    } else if (mode !== "supabase" && mode !== "api" && direction === "right" && swipedCard.matchScore >= 85) {
       setMatchedCard(swipedCard);
     }
 
@@ -151,6 +239,13 @@ export function SwipeExperience() {
   }
 
   async function sendContactRequest(message: string) {
+    if (mode === "supabase" && supabaseClient && supabaseSession && matchId) {
+      await createSupabaseContactRequest(supabaseClient, supabaseSession, matchId, message);
+      setStatusText("联系申请已发送。");
+      setMatchedCard(undefined);
+      return;
+    }
+
     if (!token || !matchId) {
       setStatusText("联系申请需要先完成匹配。");
       return;
@@ -162,6 +257,17 @@ export function SwipeExperience() {
   }
 
   async function reportCurrentCard(card: MockRecommendation) {
+    if (mode === "supabase" && supabaseClient && supabaseSession) {
+      await createSupabaseReport(supabaseClient, supabaseSession, {
+        targetCardId: card.id,
+        targetUserId: card.targetUserId,
+        reason: "用户主动举报",
+        detail: "来自滑卡页的快速举报。",
+      });
+      setStatusText("举报已提交，管理员会在审核台处理。");
+      return;
+    }
+
     if (!token || mode !== "api") {
       setStatusText("当前暂时不能提交举报。");
       return;
@@ -177,7 +283,19 @@ export function SwipeExperience() {
   }
 
   async function blockCurrentUser(card: MockRecommendation) {
-    if (!token || mode !== "api" || !card.targetUserId) {
+    if (!card.targetUserId) {
+      setStatusText("当前暂时不能拉黑该用户。");
+      return;
+    }
+
+    if (mode === "supabase" && supabaseClient && supabaseSession) {
+      await createSupabaseBlock(supabaseClient, supabaseSession, card.targetUserId, "来自滑卡页的快速拉黑。");
+      setStatusText("已拉黑该用户，后续推荐会过滤 TA 的卡片。");
+      setIndex((value) => value + 1);
+      return;
+    }
+
+    if (!token || mode !== "api") {
       setStatusText("当前暂时不能拉黑该用户。");
       return;
     }
@@ -196,6 +314,27 @@ export function SwipeExperience() {
           <p className="mt-2 text-sm leading-6 text-campus-ink/62">
             {mode === "loading" ? "正在加载..." : statusText}
           </p>
+          <div className="mt-4 flex gap-2">
+            {(["tutoring", "buddy", "premium"] as const).map((zone) => (
+              <button
+                key={zone}
+                onClick={() => {
+                  setActiveZone(zone);
+                  setIndex(0);
+                  setCards([]);
+                  setStatusText("正在读取推荐...");
+                  setMode("loading");
+                }}
+                className={`rounded-full px-3 py-1.5 text-xs font-bold transition ${
+                  activeZone === zone
+                    ? "bg-campus-ink text-campus-paper"
+                    : "bg-campus-ink/5 text-campus-ink/60 hover:bg-campus-ink/10"
+                }`}
+              >
+                {zone === "tutoring" ? "家教" : zone === "buddy" ? "搭子" : "学长学姐"}
+              </button>
+            ))}
+          </div>
         </div>
         <SafetyNotice />
       </aside>
