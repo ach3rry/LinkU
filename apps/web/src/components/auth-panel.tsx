@@ -10,6 +10,19 @@ type AuthPanelProps = {
   onSignedIn?: () => void;
 };
 
+async function proxyAuth(path: string, body: Record<string, string>) {
+  const response = await fetch(`/api/auth/${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.msg ?? data.message ?? "请求失败");
+  }
+  return data;
+}
+
 export function AuthPanel({
   title = "先登录，再开始匹配。",
   subtitle = "用邮箱创建账号，之后你的卡片、滑卡和联系申请都会留在自己的空间里。",
@@ -23,7 +36,7 @@ export function AuthPanel({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function handleSubmit() {
-    if (!client || !isSupabaseConfigured()) {
+    if (!isSupabaseConfigured()) {
       setStatusText("登录服务还没有配置好。");
       return;
     }
@@ -40,20 +53,59 @@ export function AuthPanel({
       email: email.trim(),
       password,
     };
-    const result =
-      mode === "signin"
-        ? await client.auth.signInWithPassword(credentials)
-        : await client.auth.signUp(credentials);
 
-    setIsSubmitting(false);
+    // Strategy 1: Try Supabase client directly
+    if (client) {
+      const result =
+        mode === "signin"
+          ? await client.auth.signInWithPassword(credentials)
+          : await client.auth.signUp(credentials);
 
-    if (result.error) {
-      setStatusText(result.error.message);
+      setIsSubmitting(false);
+
+      if (result.error) {
+        // If direct call fails, try proxy
+        setStatusText("正在重试...");
+        setIsSubmitting(true);
+
+        try {
+          await proxyAuth(
+            mode === "signin" ? "token?grant_type=password" : "signup",
+            credentials,
+          );
+
+          setIsSubmitting(false);
+          setStatusText(mode === "signin" ? "已登录。" : "账号已创建。");
+
+          // Refresh session
+          await client.auth.getSession();
+          onSignedIn?.();
+        } catch (proxyError) {
+          setIsSubmitting(false);
+          setStatusText(proxyError instanceof Error ? proxyError.message : "登录失败，请稍后再试。");
+        }
+        return;
+      }
+
+      setStatusText(mode === "signin" ? "已登录。" : "账号已创建，请查看邮箱确认。");
+      onSignedIn?.();
       return;
     }
 
-    setStatusText(mode === "signin" ? "已登录。" : "账号已创建，请查看邮箱确认。");
-    onSignedIn?.();
+    // Strategy 2: Proxy only (no client)
+    try {
+      await proxyAuth(
+        mode === "signin" ? "token?grant_type=password" : "signup",
+        credentials,
+      );
+
+      setIsSubmitting(false);
+      setStatusText(mode === "signin" ? "已登录。" : "账号已创建。");
+      onSignedIn?.();
+    } catch (error) {
+      setIsSubmitting(false);
+      setStatusText(error instanceof Error ? error.message : "登录失败，请稍后再试。");
+    }
   }
 
   return (

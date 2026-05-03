@@ -39,6 +39,12 @@ export function getSupabaseBrowserClient() {
         auth: {
           persistSession: true,
           autoRefreshToken: true,
+          detectSessionInUrl: true,
+        },
+        global: {
+          headers: {
+            "X-Client-Info": "linku-web/0.1.0",
+          },
         },
       },
     );
