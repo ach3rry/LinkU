@@ -2,6 +2,14 @@
 
 import { ZONES, type ZoneCode } from "@linku/shared";
 import { useMemo, useState } from "react";
+import {
+  type GeneratedCardResponse,
+  type ParsedDemandResponse,
+  createGeneratedCard,
+  generateCardDraft,
+  mockLogin,
+  parseDemand,
+} from "../lib/api";
 import { AIInsightBox } from "./ai-insight-box";
 import { SafetyNotice } from "./safety-notice";
 import { TagPill } from "./tag-pill";
@@ -88,11 +96,86 @@ function buildPreview(text: string, zone: ZoneCode) {
   };
 }
 
+function normalizeError(error: unknown) {
+  const message = error instanceof Error ? error.message : "生成失败，请稍后重试";
+
+  if (
+    /Environment variable not found|DATABASE_URL|Can't reach database|P1001|P1012/i.test(message)
+  ) {
+    return "后端已接入 DeepSeek，但本地数据库还没配置好。请先配置 DATABASE_URL，并运行 pnpm db:push && pnpm db:seed。";
+  }
+
+  if (/专区不存在|尚未初始化/.test(message)) {
+    return "数据库还没有 seed 三大专区。请运行 pnpm db:seed 后再试。";
+  }
+
+  return message;
+}
+
 export function OnboardingStepper({ initialZone }: { initialZone?: ZoneCode }) {
   const [selectedZone, setSelectedZone] = useState<ZoneCode>(initialZone ?? "tutoring");
   const [demand, setDemand] = useState("");
-  const preview = useMemo(() => buildPreview(demand, selectedZone), [demand, selectedZone]);
+  const [generatedDraft, setGeneratedDraft] = useState<GeneratedCardResponse | null>(null);
+  const [parsedDemand, setParsedDemand] = useState<ParsedDemandResponse | null>(null);
+  const [savedCardId, setSavedCardId] = useState<string | null>(null);
+  const [statusText, setStatusText] = useState("输入一句需求后，可以调用 DeepSeek 生成真实卡片。");
+  const [errorText, setErrorText] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const fallbackPreview = useMemo(() => buildPreview(demand, selectedZone), [demand, selectedZone]);
+  const preview = generatedDraft
+    ? {
+        ...fallbackPreview,
+        title: generatedDraft.title,
+        subtitle: generatedDraft.subtitle,
+        tags: generatedDraft.tags,
+        description: generatedDraft.description,
+        tone: generatedDraft.highlight,
+      }
+    : fallbackPreview;
   const activeZone = ZONES.find((zone) => zone.code === selectedZone);
+
+  async function handleGenerateCard() {
+    const text = demand.trim();
+
+    if (!text) {
+      setErrorText("先输入一句真实需求，再生成卡片。灰色文字只是占位示例。");
+      return;
+    }
+
+    setIsGenerating(true);
+    setErrorText(null);
+    setSavedCardId(null);
+    setStatusText("正在 mock 登录并调用 DeepSeek...");
+
+    try {
+      const login = await mockLogin("user");
+      const parsed = await parseDemand(login.token, text);
+      const zoneAlignedDemand: ParsedDemandResponse = {
+        ...parsed,
+        zone: selectedZone,
+      };
+
+      setParsedDemand(zoneAlignedDemand);
+      setStatusText("DeepSeek 已完成需求解析，正在生成卡片草稿...");
+
+      const draft = await generateCardDraft(login.token, zoneAlignedDemand);
+      setGeneratedDraft(draft);
+      setStatusText("AI 卡片草稿已生成，正在保存到我的卡片...");
+
+      const card = await createGeneratedCard(login.token, {
+        demand: zoneAlignedDemand,
+        draft,
+      });
+
+      setSavedCardId(card.id);
+      setStatusText("卡片已保存，状态为待审核。可以去个人中心或 Admin 查看。");
+    } catch (error) {
+      setErrorText(normalizeError(error));
+      setStatusText("生成没有完成。");
+    } finally {
+      setIsGenerating(false);
+    }
+  }
 
   return (
     <div className="grid gap-8 lg:grid-cols-[0.92fr_1.08fr]">
@@ -121,14 +204,29 @@ export function OnboardingStepper({ initialZone }: { initialZone?: ZoneCode }) {
           <textarea
             value={demand}
             placeholder={demandPlaceholders[selectedZone]}
-            onChange={(event) => setDemand(event.target.value)}
+            onChange={(event) => {
+              setDemand(event.target.value);
+              setGeneratedDraft(null);
+              setParsedDemand(null);
+              setSavedCardId(null);
+              setErrorText(null);
+              setStatusText("输入一句需求后，可以调用 DeepSeek 生成真实卡片。");
+            }}
             className="mt-3 min-h-36 w-full resize-none rounded-[1.5rem] border border-campus-ink/10 bg-white/80 p-4 leading-7 outline-none transition placeholder:text-campus-ink/38 focus:border-campus-grass"
           />
         </label>
 
-        <Button className="mt-5 w-full" size="lg">
-          确认生成卡片
+        <Button
+          className="mt-5 w-full"
+          size="lg"
+          onClick={handleGenerateCard}
+          disabled={isGenerating}
+        >
+          {isGenerating ? "正在生成..." : "调用 DeepSeek 生成卡片"}
         </Button>
+        <p className="mt-3 text-sm leading-6 text-campus-ink/56">
+          当前使用 mock login + JWT。真实校园认证还没接入，MVP 阶段先用于本地闭环测试。
+        </p>
       </section>
 
       <section className="space-y-5">
@@ -146,6 +244,25 @@ export function OnboardingStepper({ initialZone }: { initialZone?: ZoneCode }) {
               <strong>关系边界：</strong>
               {preview.boundary}
             </p>
+            {parsedDemand ? (
+              <p>
+                <strong>AI 状态：</strong>
+                {parsedDemand.safetyRisk === "high" ? "高风险，建议先审核" : "可进入建卡流程"}
+              </p>
+            ) : null}
+          </div>
+        </AIInsightBox>
+
+        <AIInsightBox title="生成状态">
+          <div className="grid gap-2 text-sm leading-6">
+            <p>{statusText}</p>
+            {savedCardId ? (
+              <p>
+                <strong>卡片 ID：</strong>
+                {savedCardId}
+              </p>
+            ) : null}
+            {errorText ? <p className="font-black text-red-600">{errorText}</p> : null}
           </div>
         </AIInsightBox>
 

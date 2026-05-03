@@ -55,6 +55,86 @@ export function mockLogin(role: "user" | "admin" = "user") {
   });
 }
 
+export type ParsedDemandResponse = {
+  zone: "tutoring" | "buddy" | "premium";
+  intent: string;
+  subject?: string;
+  skills: string[];
+  interests: string[];
+  budgetMin?: number;
+  budgetMax?: number;
+  scheduleText?: string;
+  location?: string;
+  onlineMode: "online" | "offline" | "hybrid";
+  urgency: "low" | "medium" | "high";
+  relationshipBoundary: "study_only" | "activity_partner" | "light_social" | "open_to_relationship";
+  safetyRisk: "low" | "medium" | "high";
+};
+
+export type GeneratedCardResponse = {
+  title: string;
+  subtitle: string;
+  tags: string[];
+  description: string;
+  highlight: string;
+};
+
+export type CreatedCardResponse = {
+  id: string;
+  title: string;
+  status: string;
+};
+
+export function parseDemand(token: string, text: string) {
+  return apiFetch<ParsedDemandResponse>("/ai/parse-demand", {
+    method: "POST",
+    token,
+    body: JSON.stringify({ text }),
+  });
+}
+
+export function generateCardDraft(token: string, demand: ParsedDemandResponse) {
+  return apiFetch<GeneratedCardResponse>("/ai/generate-card", {
+    method: "POST",
+    token,
+    body: JSON.stringify({ demand }),
+  });
+}
+
+export function createGeneratedCard(
+  token: string,
+  input: {
+    demand: ParsedDemandResponse;
+    draft: GeneratedCardResponse;
+  },
+) {
+  return apiFetch<CreatedCardResponse>("/cards", {
+    method: "POST",
+    token,
+    body: JSON.stringify({
+      zone: input.demand.zone,
+      type:
+        input.demand.zone === "buddy"
+          ? "buddy_request"
+          : input.demand.zone === "premium"
+            ? "premium_consultation"
+            : input.demand.intent.includes("提供")
+              ? "provide_tutoring"
+              : "need_tutoring",
+      title: input.draft.title,
+      subtitle: input.draft.subtitle,
+      description: input.draft.description,
+      tags: input.draft.tags,
+      priceMin: input.demand.budgetMin,
+      priceMax: input.demand.budgetMax,
+      schedule: input.demand.scheduleText ? { text: input.demand.scheduleText } : {},
+      location: input.demand.location,
+      onlineMode: input.demand.onlineMode,
+      aiGenerated: true,
+    }),
+  });
+}
+
 export type ApiRecommendationItem = {
   card: {
     id: string;

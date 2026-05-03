@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, ServiceUnavailableException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
 import { UserRole } from "@prisma/client";
@@ -15,6 +15,8 @@ export class AuthService {
   ) {}
 
   async mockLogin(input: MockLoginInput) {
+    this.assertDatabaseConfigured();
+
     const email = input.email?.toLowerCase() ?? this.createMockEmail(input.nickname, input.school);
     const role = input.role === "admin" ? UserRole.ADMIN : UserRole.USER;
 
@@ -56,5 +58,13 @@ export class AuthService {
 
   private getJwtSecret() {
     return this.configService.get<string>("JWT_SECRET") ?? "linku-dev-secret-change-me";
+  }
+
+  private assertDatabaseConfigured() {
+    if (!this.configService.get<string>("DATABASE_URL")) {
+      throw new ServiceUnavailableException(
+        "本地数据库尚未配置。请设置 DATABASE_URL，并运行 pnpm db:push && pnpm db:seed 后再测试登录和建卡。",
+      );
+    }
   }
 }
