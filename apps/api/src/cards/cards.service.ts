@@ -46,7 +46,7 @@ export class CardsService {
         schedule: input.schedule as Prisma.InputJsonValue,
         location: input.location,
         onlineMode: publicOnlineModeToPrisma[input.onlineMode],
-        status: CardStatus.PENDING,
+        status: CardStatus.ACTIVE,
         aiGenerated: input.aiGenerated,
       },
       include: {

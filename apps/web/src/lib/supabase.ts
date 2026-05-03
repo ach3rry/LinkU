@@ -158,7 +158,7 @@ export async function createSupabaseCard(
       schedule: input.demand.scheduleText ? { text: input.demand.scheduleText } : {},
       location: input.demand.location,
       onlineMode: onlineModeMap[input.demand.onlineMode],
-      status: "PENDING",
+      status: "ACTIVE",
       aiGenerated: false,
     })
     .select("id,title,status")
