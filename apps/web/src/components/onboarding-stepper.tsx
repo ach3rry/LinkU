@@ -10,7 +10,7 @@ import {
   getApiAccessToken,
   parseDemand,
 } from "../lib/api";
-import { useSupabaseSession } from "../lib/supabase";
+import { createSupabaseCard, isSupabaseDirectMode, useSupabaseSession } from "../lib/supabase";
 import { AIInsightBox } from "./ai-insight-box";
 import { AuthPanel } from "./auth-panel";
 import { SafetyNotice } from "./safety-notice";
@@ -114,6 +114,45 @@ function normalizeError(error: unknown) {
   return message;
 }
 
+function buildDirectDemand(text: string, zone: ZoneCode): ParsedDemandResponse {
+  const priceMatch = text.match(/(\d{2,4})\s*\/?\s*h/i);
+  const budget = priceMatch ? Number(priceMatch[1]) : undefined;
+
+  return {
+    zone,
+    intent:
+      zone === "buddy"
+        ? "寻找校园搭子"
+        : zone === "premium"
+          ? "寻找高价值经验咨询"
+          : /当家教|提供|辅导别人/.test(text)
+            ? "提供家教"
+            : "寻找家教",
+    skills: [],
+    interests: [],
+    budgetMin: budget,
+    budgetMax: budget,
+    scheduleText: /周末|晚上|工作日|周[一二三四五六日天]/.test(text) ? text : undefined,
+    location: /线下|校区|图书馆|食堂/.test(text) ? "线下可约" : undefined,
+    onlineMode: /线上|远程/.test(text) ? "online" : /线下/.test(text) ? "offline" : "hybrid",
+    urgency: "medium",
+    relationshipBoundary: zone === "buddy" ? "activity_partner" : "study_only",
+    safetyRisk: "low",
+  };
+}
+
+function buildDirectDraft(text: string, zone: ZoneCode): GeneratedCardResponse {
+  const preview = buildPreview(text, zone);
+
+  return {
+    title: preview.title,
+    subtitle: preview.subtitle,
+    tags: preview.tags,
+    description: preview.description,
+    highlight: preview.tone,
+  };
+}
+
 export function OnboardingStepper({ initialZone }: { initialZone?: ZoneCode }) {
   const [selectedZone, setSelectedZone] = useState<ZoneCode>(initialZone ?? "tutoring");
   const [demand, setDemand] = useState("");
@@ -125,7 +164,7 @@ export function OnboardingStepper({ initialZone }: { initialZone?: ZoneCode }) {
   const [errorText, setErrorText] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isStartingLocal, setIsStartingLocal] = useState(false);
-  const { client, isReady, token: sessionToken } = useSupabaseSession();
+  const { client, isReady, session, token: sessionToken } = useSupabaseSession();
   const fallbackPreview = useMemo(() => buildPreview(demand, selectedZone), [demand, selectedZone]);
   const preview = generatedDraft
     ? {
@@ -175,6 +214,24 @@ export function OnboardingStepper({ initialZone }: { initialZone?: ZoneCode }) {
     setStatusText("正在整理需求...");
 
     try {
+      if (isSupabaseDirectMode() && client && session) {
+        const demandDraft = buildDirectDemand(text, selectedZone);
+        const cardDraft = buildDirectDraft(text, selectedZone);
+
+        setParsedDemand(demandDraft);
+        setGeneratedDraft(cardDraft);
+        setStatusText("卡片已整理，正在保存...");
+
+        const card = await createSupabaseCard(client, session, {
+          demand: demandDraft,
+          draft: cardDraft,
+        });
+
+        setSavedCardId(card.id);
+        setStatusText("卡片已发布，等待审核。");
+        return;
+      }
+
       const parsed = await parseDemand(apiToken, text);
       const zoneAlignedDemand: ParsedDemandResponse = {
         ...parsed,
@@ -277,7 +334,7 @@ export function OnboardingStepper({ initialZone }: { initialZone?: ZoneCode }) {
               onClick={handleGenerateCard}
               disabled={isGenerating}
             >
-              {isGenerating ? "正在生成" : "生成卡片"}
+              {isGenerating ? "正在发布" : isSupabaseDirectMode() ? "发布卡片" : "生成卡片"}
             </Button>
           </>
         )}

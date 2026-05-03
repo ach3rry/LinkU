@@ -84,9 +84,9 @@ MVP 推荐架构：
 
 - Web：Netlify
 - 数据库与认证：Supabase Postgres + Supabase Auth
-- API：Render、Railway 或 Fly 托管 NestJS 服务
+- API：暂缓部署，已有 NestJS API 保留，后续需要智能建卡和推荐时再接回
 
-详细说明见 [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)。
+当前先用 Netlify + Supabase 跑通真实注册和建卡。详细说明见 [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) 和 [docs/SUPABASE_MVP_SETUP.md](docs/SUPABASE_MVP_SETUP.md)。
 
 ## 本地验证
 

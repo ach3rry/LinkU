@@ -11,11 +11,13 @@ export function LandingStage() {
     <main>
       <section className="relative isolate flex min-h-[calc(100svh-4rem)] overflow-hidden px-5 py-10">
         <motion.div
-          className="absolute inset-y-0 right-0 -z-10 hidden w-[52vw] rounded-bl-[4rem] bg-campus-ink lg:block"
+          className="absolute inset-y-8 right-0 -z-10 hidden w-[52vw] overflow-hidden rounded-l-[4rem] bg-[radial-gradient(circle_at_48%_72%,rgba(255,146,91,0.34),transparent_15rem),linear-gradient(145deg,#102318_0%,#13291e_48%,#0c1b13_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_30px_90px_rgba(23,33,26,0.18)] lg:block"
           initial={{ x: 120, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           transition={{ duration: 0.7, ease: "easeOut" }}
         />
+        <div className="absolute right-[17%] top-[52%] -z-10 hidden h-44 w-72 -translate-y-1/2 rounded-full bg-campus-coral/24 blur-3xl lg:block" />
+        <div className="absolute right-[29%] top-[30%] -z-10 hidden h-32 w-44 rounded-full bg-campus-lime/20 blur-3xl lg:block" />
 
         <div className="mx-auto grid w-full max-w-6xl items-center gap-12 lg:grid-cols-[1fr_0.82fr]">
           <motion.div
@@ -53,7 +55,8 @@ export function LandingStage() {
             animate={{ rotate: 0, y: 0, opacity: 1 }}
             transition={{ delay: 0.15, duration: 0.7, ease: "easeOut" }}
           >
-            <div className="rounded-[2.5rem] bg-campus-paper p-5 shadow-[0_34px_120px_rgba(0,0,0,0.24)]">
+            <div className="absolute -inset-6 -z-10 rounded-[3rem] bg-campus-paper/12 blur-xl" />
+            <div className="rounded-[2.5rem] bg-campus-paper p-5 shadow-[0_34px_120px_rgba(0,0,0,0.24)] ring-1 ring-white/20">
               <div className="rounded-[2rem] bg-white p-6">
                 <div className="flex items-center justify-between">
                   <span className="rounded-full bg-campus-lime px-3 py-1 text-xs font-black">

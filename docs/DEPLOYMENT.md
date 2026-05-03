@@ -1,27 +1,24 @@
 # LinkU MVP 部署说明
 
-LinkU MVP 采用三段式部署：Netlify 托管 Web，Supabase 提供 Postgres 与 Auth，NestJS API 独立部署到 Render、Railway 或 Fly。当前不建议把 NestJS API 直接塞进 Supabase Edge Functions，除非后续决定重写为 Deno/Edge 版本。
+LinkU 当前优先采用两段式部署：Netlify 托管 Web，Supabase 提供 Postgres 与 Auth。已有 NestJS API 先保留在仓库中，不为这次上线做大重构；等真实注册和建卡跑通后，再决定是否把 AI、推荐和审核能力接回独立 API。
 
 ## 最小上线方案
 
 1. Supabase
    - 创建项目，开启 Email Auth。
    - 使用 Supabase Postgres 作为生产数据库。
-   - 在 API 服务中配置 `DATABASE_URL`、`SUPABASE_URL`，以及 `SUPABASE_JWT_SECRET` 或 `SUPABASE_JWKS_URL`。
-   - 管理员先用 `SUPABASE_ADMIN_EMAILS` 白名单控制，后续再做后台角色管理。
+   - 用 `pnpm db:push` 初始化表结构，或后续切换到 Prisma migration。
+   - 运行 [SUPABASE_MVP_SETUP.md](SUPABASE_MVP_SETUP.md) 中的基础专区数据和 RLS 策略。
 
-2. NestJS API
-   - 首选 Render 或 Railway 部署 Node 服务。
-   - 构建命令：`pnpm install --frozen-lockfile && pnpm --filter @linku/api db:generate && pnpm --filter @linku/api build`
-   - 启动命令：`pnpm --filter @linku/api start`
-   - 配置 `WEB_ORIGIN` 为 Netlify 域名，收紧 CORS。
-   - 生产环境默认不开放演示登录；如需临时演示，必须显式设置 `ALLOW_MOCK_LOGIN=true`，演示后立即关闭。
-
-3. Netlify Web
+2. Netlify Web
    - 连接 GitHub 仓库，Base directory 设为仓库根目录。
    - 构建命令：`pnpm install --frozen-lockfile && pnpm --filter @linku/web build`
    - 发布目录由 Netlify Next.js 适配器处理。
-   - 配置 `NEXT_PUBLIC_API_BASE_URL`、`NEXT_PUBLIC_SUPABASE_URL`、`NEXT_PUBLIC_SUPABASE_ANON_KEY`。
+   - 配置 `NEXT_PUBLIC_SUPABASE_URL`、`NEXT_PUBLIC_SUPABASE_ANON_KEY`、`NEXT_PUBLIC_LINKU_DATA_MODE=supabase`。
+
+3. 暂缓项
+   - NestJS API、DeepSeek、服务端推荐、后台审核写操作暂不部署。
+   - 这些代码不删除、不重构，后续作为阶段 18 重新接入。
 
 ## 环境变量
 
@@ -46,9 +43,9 @@ OPENAI_COMPATIBLE_MODEL=
 Web 服务：
 
 ```env
-NEXT_PUBLIC_API_BASE_URL=https://你的-api-域名
 NEXT_PUBLIC_SUPABASE_URL=https://你的-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
+NEXT_PUBLIC_LINKU_DATA_MODE=supabase
 ```
 
 真实 `.env`、API Key、数据库密码、`JWT_SECRET` 不允许提交到 Git。
@@ -87,5 +84,33 @@ pnpm --filter @linku/web build
 
 - `GET /health` 返回 `status: "ok"`。
 - Web 能正常登录、建卡、滑卡。
-- API 只接受 Supabase 会话或明确允许的开发令牌。
 - 生产界面不出现演示、mock、fallback、Provider、JWT 等字样。
+
+## 后续独立 API 方案
+
+如果后续重新启用 NestJS API，再补充：
+
+```env
+DATABASE_URL=
+JWT_SECRET=
+SUPABASE_URL=
+SUPABASE_JWT_SECRET=
+SUPABASE_JWKS_URL=
+SUPABASE_AUTH_ISSUER=
+SUPABASE_AUTH_AUDIENCE=authenticated
+SUPABASE_ADMIN_EMAILS=
+WEB_ORIGIN=
+AI_PROVIDER=openai-compatible
+OPENAI_COMPATIBLE_BASE_URL=
+OPENAI_COMPATIBLE_API_KEY=
+OPENAI_COMPATIBLE_MODEL=
+NEXT_PUBLIC_API_BASE_URL=https://你的-api-域名
+```
+
+API 构建命令：
+
+```bash
+pnpm install --frozen-lockfile
+pnpm --filter @linku/api db:generate
+pnpm --filter @linku/api build
+```

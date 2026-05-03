@@ -3,9 +3,9 @@
 ## 当前进度
 
 - 阶段 0-11 已完成。
-- 阶段 12 已开始：Supabase Auth 第一阶段接入完成，API 可验证 Supabase 会话并同步本地用户；生产环境默认关闭演示登录。
+- 阶段 12 已开始：Supabase Auth 第一阶段接入完成；当前优先走 Netlify + Supabase 直连，API 认证能力保留但暂不作为上线阻塞。
 - 阶段 15 已开始：Swipe、Profile、Admin 页面优先读取真实 API，本地演示数据只作为开发兜底，不在界面暴露 mock 语义。
-- 阶段 16 已明确 MVP 架构：Netlify Web + Supabase Postgres/Auth + Render/Railway/Fly NestJS API。
+- 阶段 16 已调整 MVP 架构：Netlify Web + Supabase Postgres/Auth 先跑通真实注册和建卡；独立 NestJS API 后续再接。
 
 ## 阶段 0：仓库初始化
 
@@ -86,6 +86,7 @@
 - [x] NestJS API 验证 Supabase 会话
 - [x] Supabase 用户自动同步到本地 User
 - [x] 生产环境默认禁用演示登录
+- [x] Supabase-only 模式下前端可同步当前用户到 `"User"` 表
 - [ ] 找回登录能力
 - [ ] 用户资料必填项校验
 - [ ] 管理员初始化与角色维护方案
@@ -115,6 +116,7 @@
 - [x] Swipe 页面默认真实 API，开发兜底不暴露在界面
 - [x] Profile 页面默认真实 API，开发兜底不暴露在界面
 - [x] Admin 页面默认真实 API，开发兜底不暴露在界面
+- [x] Netlify + Supabase 直连模式下建卡页可发布待审核卡片
 - [ ] 我的卡片、我的资料完全来自后端
 - [ ] 会员状态从占位表切换为真实权益表
 - [ ] 学长学姐专区 MVP 规则定稿
@@ -123,14 +125,23 @@
 
 ## 阶段 16：云部署 MVP
 
-- [x] 明确推荐架构：Netlify Web + Supabase Postgres/Auth + 独立 NestJS API
+- [x] 调整首发架构：Netlify Web + Supabase Postgres/Auth
+- [x] 保留 NestJS API，不为首发重构或部署
+- [x] 增加 Supabase-only 建卡配置说明
 - [ ] 创建 Supabase 项目
-- [ ] 部署 NestJS API
 - [ ] 部署 Netlify Web
 - [ ] 配置生产环境变量
-- [ ] 执行数据库迁移
+- [ ] 初始化 Supabase schema、Zone 数据和 RLS 策略
 - [ ] 配置 HTTPS 与生产域名
 - [ ] 部署后 smoke test
+
+## 阶段 18：后续服务端能力回接
+
+- [ ] 评估是否恢复独立 NestJS API 部署
+- [ ] 智能建卡重新接入服务端模型调用
+- [ ] 推荐、滑卡、匹配闭环迁回服务端规则
+- [ ] Admin 审核写操作迁回受保护 API
+- [ ] 支付与会员权益服务端化
 
 ## 阶段 17：上线前验收
 
