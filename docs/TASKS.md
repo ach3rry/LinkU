@@ -3,9 +3,10 @@
 ## 当前进度
 
 - 阶段 0-11 已完成。
-- 阶段 12 已开始：Supabase Auth 第一阶段接入完成；当前优先走 Netlify + Supabase 直连，API 认证能力保留但暂不作为上线阻塞。
-- 阶段 15 已开始：Swipe、Profile、Admin 页面优先读取真实 API，本地演示数据只作为开发兜底，不在界面暴露 mock 语义。
-- 阶段 16 已调整 MVP 架构：Netlify Web + Supabase Postgres/Auth 先跑通真实注册和建卡；独立 NestJS API 后续再接。
+- 阶段 12 已开始：Supabase Auth 前端登录 / 注册已完成；找回登录、用户资料必填项校验、管理员角色、OAuth 等待后续。
+- 阶段 15 已开始：Swipe、Profile 页面已支持 Supabase 直连；Admin 页面待改造；空状态和加载状态待补齐。
+- 阶段 16 已基本完成：Netlify Web 已部署至 https://linkuni.netlify.app/ ；Supabase Postgres schema、Zone 数据、RLS 策略已初始化。
+- **Supabase 直连模式已支持完整的 MVP 闭环**：注册 → 建卡（直接 ACTIVE）→ 推荐 → 滑卡 → 双向匹配 → 联系申请 → 举报/拉黑。
 
 ## 阶段 0：仓库初始化
 
@@ -113,11 +114,12 @@
 
 ## 阶段 15：去 mock 业务闭环
 
-- [x] Swipe 页面默认真实 API，开发兜底不暴露在界面
-- [x] Profile 页面默认真实 API，开发兜底不暴露在界面
-- [x] Admin 页面默认真实 API，开发兜底不暴露在界面
-- [x] Netlify + Supabase 直连模式下建卡页可发布待审核卡片
-- [ ] 我的卡片、我的资料完全来自后端
+- [x] Swipe 页面 Supabase 直连推荐、滑卡、匹配
+- [x] Profile 页面 Supabase 直连展示真实卡片和匹配数
+- [x] 建卡直接 ACTIVE，跳过审核
+- [x] Netlify + Supabase 直连模式下建卡页可发布卡片
+- [ ] Admin 页面 Supabase 直连
+- [ ] 我的资料编辑页（学校、城市、年级、专业）
 - [ ] 会员状态从占位表切换为真实权益表
 - [ ] 学长学姐专区 MVP 规则定稿
 - [ ] 支付保持禁用或接入真实支付沙箱
@@ -128,20 +130,12 @@
 - [x] 调整首发架构：Netlify Web + Supabase Postgres/Auth
 - [x] 保留 NestJS API，不为首发重构或部署
 - [x] 增加 Supabase-only 建卡配置说明
-- [ ] 创建 Supabase 项目
-- [ ] 部署 Netlify Web
-- [ ] 配置生产环境变量
-- [ ] 初始化 Supabase schema、Zone 数据和 RLS 策略
-- [ ] 配置 HTTPS 与生产域名
-- [ ] 部署后 smoke test
-
-## 阶段 18：后续服务端能力回接
-
-- [ ] 评估是否恢复独立 NestJS API 部署
-- [ ] 智能建卡重新接入服务端模型调用
-- [ ] 推荐、滑卡、匹配闭环迁回服务端规则
-- [ ] Admin 审核写操作迁回受保护 API
-- [ ] 支付与会员权益服务端化
+- [x] 创建 Supabase 项目
+- [x] 部署 Netlify Web（https://linkuni.netlify.app/）
+- [x] 配置生产环境变量
+- [x] 初始化 Supabase schema、Zone 数据和 RLS 策略
+- [ ] 配置自定义域名（可选）
+- [ ] 部署后完整 smoke test
 
 ## 阶段 17：上线前验收
 
@@ -155,3 +149,27 @@
 - [ ] 移动端关键页面检查
 - [ ] 生产错误日志检查
 - [ ] README / docs 同步上线状态
+
+## 阶段 18：后续服务端能力回接
+
+- [ ] 评估是否恢复独立 NestJS API 部署
+- [ ] 智能建卡重新接入服务端模型调用
+- [ ] 推荐、滑卡、匹配闭环迁回服务端规则
+- [ ] Admin 审核写操作迁回受保护 API
+- [ ] 支付与会员权益服务端化
+
+## Supabase 直连架构说明
+
+MVP 阶段前端直接通过 Supabase JS Client 操作数据库，不经过 NestJS API。相关代码集中在：
+
+- `apps/web/src/lib/supabase.ts` — Supabase 客户端、Session 管理、所有直连数据操作
+- `apps/web/src/app/swipe/swipe-experience.tsx` — 三种数据模式（supabase/api/mock）
+- `apps/web/src/app/profile/profile-dashboard.tsx` — Profile 直连
+- `apps/web/src/components/onboarding-stepper.tsx` — 建卡直连
+
+RLS 策略覆盖的表：User, Zone, Card, Swipe, Match, ContactRequest, Block, Report。
+
+数据模式由 `NEXT_PUBLIC_LINKU_DATA_MODE` 控制：
+- `supabase`：直连 Supabase（线上 Netlify）
+- `api`：通过 NestJS API（本地开发联调）
+- 未设置 + 非 production：fallback mock 数据
