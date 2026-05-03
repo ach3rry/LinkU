@@ -435,9 +435,14 @@ export function ProfileDashboard() {
                 ))}
               </div>
             ) : (
-              <p className="mt-6 text-sm leading-7 text-campus-ink/60">
-                还没有卡片。去建卡页面发布一张吧。
-              </p>
+              <div className="mt-6 rounded-[1.5rem] bg-campus-paper p-5">
+                <p className="text-sm leading-7 text-campus-ink/60">
+                  还没有卡片。发布一张需求或服务卡片后，别人才能在滑卡页看到你。
+                </p>
+                <Button asChild className="mt-4" variant="secondary">
+                  <Link href="/onboarding">去建卡</Link>
+                </Button>
+              </div>
             )}
           </div>
 

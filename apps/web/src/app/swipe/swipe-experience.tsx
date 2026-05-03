@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { MatchSuccessModal } from "../../components/match-success-modal";
 import { SafetyNotice } from "../../components/safety-notice";
@@ -115,7 +116,11 @@ export function SwipeExperience() {
   const { client: supabaseClient, isReady, session: supabaseSession } = useSupabaseSession();
 
   const current = cards.length ? cards[index % cards.length] : undefined;
-  const progress = useMemo(() => index + 1, [index]);
+  const progress = useMemo(() => (cards.length ? index + 1 : 0), [cards.length, index]);
+  const emptyTitle = mode === "loading" ? "正在准备推荐" : "还没有可看的卡片";
+  const emptyAction = supabaseSession
+    ? { href: "/onboarding", label: "去发布卡片" }
+    : { href: "/auth", label: "先登录" };
 
   useEffect(() => {
     let cancelled = false;
@@ -205,7 +210,7 @@ export function SwipeExperience() {
     return () => {
       cancelled = true;
     };
-  }, [activeZone, supabaseClient, supabaseSession]);
+  }, [activeZone, isReady, supabaseClient, supabaseSession]);
 
   async function handleSwipe(direction: "left" | "right") {
     if (!current) return;
@@ -372,8 +377,13 @@ export function SwipeExperience() {
         ) : (
           <div className="grid min-h-[32rem] w-full place-items-center rounded-[2rem] bg-white/70 p-8 text-center">
             <div>
-              <h2 className="font-display text-4xl font-black">还没有可看的卡片</h2>
+              <h2 className="font-display text-4xl font-black">{emptyTitle}</h2>
               <p className="mt-3 text-sm leading-7 text-campus-ink/62">{statusText}</p>
+              {mode === "loading" ? null : (
+                <Button asChild className="mt-5" variant="secondary">
+                  <Link href={emptyAction.href}>{emptyAction.label}</Link>
+                </Button>
+              )}
             </div>
           </div>
         )}

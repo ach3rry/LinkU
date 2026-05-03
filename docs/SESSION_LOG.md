@@ -13,6 +13,11 @@
 - 前端复用后端已有的 FREE / SEMESTER / PREMIUM_MOCK 权益额度，并用 `"Swipe"` 表统计当日滑卡和右滑次数。
 - `supabase/mvp_rls.sql` 和 `docs/SUPABASE_MVP_SETUP.md` 补充 `subscription_select_own` 策略。
 
+### 空状态入口补齐
+- 滑卡页空推荐 / 未登录时补充登录或建卡入口，加载中不再显示错误空态。
+- Profile 无卡片时补充建卡按钮。
+- 建卡成功后在保存结果里补充跳转滑卡页按钮。
+
 ## 最近完成的工作（2026-05-03）
 
 ### Supabase 云数据库初始化

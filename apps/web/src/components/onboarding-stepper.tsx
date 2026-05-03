@@ -1,6 +1,7 @@
 "use client";
 
 import { ZONES, type ZoneCode } from "@linku/shared";
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import {
   type GeneratedCardResponse,
@@ -368,7 +369,12 @@ export function OnboardingStepper({ initialZone }: { initialZone?: ZoneCode }) {
           <div className="grid gap-2 text-sm leading-6">
             <p>{statusText}</p>
             {savedCardId ? (
-              <p className="font-black text-campus-grass">卡片已发布，立即生效！</p>
+              <div>
+                <p className="font-black text-campus-grass">卡片已发布，立即生效！</p>
+                <Button asChild className="mt-3" variant="secondary">
+                  <Link href="/swipe">去滑卡页看看</Link>
+                </Button>
+              </div>
             ) : null}
             {errorText ? <p className="font-black text-red-600">{errorText}</p> : null}
           </div>
