@@ -447,3 +447,83 @@ export async function createSupabaseReport(
     throw new Error(error.message);
   }
 }
+
+export type SupabaseAdminReport = {
+  id: string;
+  reason: string;
+  detail?: string | null;
+  status: string;
+  createdAt: string;
+  targetCard?: {
+    title: string;
+  } | null;
+  targetUser?: {
+    nickname: string;
+  } | null;
+};
+
+export type SupabaseAdminCard = {
+  id: string;
+  title: string;
+  subtitle: string;
+  status: string;
+  zone: {
+    name: string;
+  };
+};
+
+export function isSupabaseAdminSession(session: Session) {
+  const metadata = {
+    ...session.user.app_metadata,
+    ...session.user.user_metadata,
+  };
+  const adminEmails = (process.env.NEXT_PUBLIC_LINKU_ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((item) => item.trim().toLowerCase())
+    .filter(Boolean);
+
+  return (
+    metadata.linku_role === "admin" ||
+    metadata.role === "admin" ||
+    (session.user.email ? adminEmails.includes(session.user.email.toLowerCase()) : false)
+  );
+}
+
+export async function getSupabaseAdminReports(client: SupabaseClient, session: Session) {
+  if (!isSupabaseAdminSession(session)) {
+    throw new Error("需要管理员登录后查看。");
+  }
+
+  const { data, error } = await client
+    .from("Report")
+    .select("id, reason, detail, status, createdAt, targetCard:Card(title), targetUser:User(nickname)")
+    .order("createdAt", { ascending: false })
+    .limit(50);
+
+  if (error) {
+    console.error("[Supabase] getSupabaseAdminReports error:", error);
+    throw new Error(error.message);
+  }
+
+  return (data ?? []) as unknown as SupabaseAdminReport[];
+}
+
+export async function getSupabaseAdminCards(client: SupabaseClient, session: Session) {
+  if (!isSupabaseAdminSession(session)) {
+    throw new Error("需要管理员登录后查看。");
+  }
+
+  const { data, error } = await client
+    .from("Card")
+    .select("id, title, subtitle, status, zone:Zone(name)")
+    .in("status", ["PENDING", "ACTIVE", "REJECTED"])
+    .order("createdAt", { ascending: false })
+    .limit(30);
+
+  if (error) {
+    console.error("[Supabase] getSupabaseAdminCards error:", error);
+    throw new Error(error.message);
+  }
+
+  return (data ?? []) as unknown as SupabaseAdminCard[];
+}

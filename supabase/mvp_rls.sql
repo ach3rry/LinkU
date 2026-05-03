@@ -170,3 +170,25 @@ on "Report"
 for insert
 to authenticated
 with check ("reporterId" = auth.uid()::text);
+
+-- Admin read policies. Set app_metadata.linku_role = 'admin' for admin users.
+drop policy if exists "admin_report_select" on "Report";
+create policy "admin_report_select"
+on "Report"
+for select
+to authenticated
+using ((auth.jwt() -> 'app_metadata' ->> 'linku_role') = 'admin');
+
+drop policy if exists "admin_card_select" on "Card";
+create policy "admin_card_select"
+on "Card"
+for select
+to authenticated
+using ((auth.jwt() -> 'app_metadata' ->> 'linku_role') = 'admin');
+
+drop policy if exists "admin_user_select" on "User";
+create policy "admin_user_select"
+on "User"
+for select
+to authenticated
+using ((auth.jwt() -> 'app_metadata' ->> 'linku_role') = 'admin');

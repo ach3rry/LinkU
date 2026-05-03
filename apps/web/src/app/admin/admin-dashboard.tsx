@@ -10,6 +10,12 @@ import {
   type AdminReportItem,
 } from "../../lib/api";
 import { mockReports } from "../../lib/mock-data";
+import {
+  getSupabaseAdminCards,
+  getSupabaseAdminReports,
+  isSupabaseDirectMode,
+  useSupabaseSession,
+} from "../../lib/supabase";
 
 const mockPendingCards: AdminCardItem[] = [
   {
@@ -42,6 +48,7 @@ function mapMockReports(): AdminReportItem[] {
 }
 
 export function AdminDashboard() {
+  const { client: supabaseClient, isReady, session: supabaseSession } = useSupabaseSession();
   const [reports, setReports] = useState<AdminReportItem[]>(mapMockReports());
   const [cards, setCards] = useState<AdminCardItem[]>(mockPendingCards);
   const [statusText, setStatusText] = useState("正在读取审核数据...");
@@ -50,6 +57,32 @@ export function AdminDashboard() {
     let cancelled = false;
 
     async function loadAdminData() {
+      if (!isReady) return;
+
+      if (isSupabaseDirectMode() && supabaseClient) {
+        if (!supabaseSession) {
+          setStatusText("需要管理员登录后查看。");
+          return;
+        }
+
+        try {
+          const [supabaseReports, supabaseCards] = await Promise.all([
+            getSupabaseAdminReports(supabaseClient, supabaseSession),
+            getSupabaseAdminCards(supabaseClient, supabaseSession),
+          ]);
+
+          if (cancelled) return;
+
+          setReports(supabaseReports);
+          setCards(supabaseCards);
+          setStatusText("审核数据已更新。");
+        } catch (error) {
+          if (cancelled) return;
+          setStatusText(error instanceof Error ? error.message : "暂时无法读取审核数据。");
+        }
+        return;
+      }
+
       try {
         const accessToken = await getApiAccessToken("admin");
 
@@ -79,7 +112,7 @@ export function AdminDashboard() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [isReady, supabaseClient, supabaseSession]);
 
   return (
     <main className="mx-auto w-full max-w-6xl px-5 py-12">
