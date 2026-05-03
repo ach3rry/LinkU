@@ -14,6 +14,7 @@ alter table "Match" enable row level security;
 alter table "ContactRequest" enable row level security;
 alter table "Block" enable row level security;
 alter table "Report" enable row level security;
+alter table "Subscription" enable row level security;
 
 drop policy if exists "user_select_self" on "User";
 drop policy if exists "user_select_self_or_active_card_owner" on "User";
@@ -170,6 +171,13 @@ on "Report"
 for insert
 to authenticated
 with check ("reporterId" = auth.uid()::text);
+
+drop policy if exists "subscription_select_own" on "Subscription";
+create policy "subscription_select_own"
+on "Subscription"
+for select
+to authenticated
+using ("userId" = auth.uid()::text);
 
 -- Admin read policies. Set app_metadata.linku_role = 'admin' for admin users.
 drop policy if exists "admin_report_select" on "Report";

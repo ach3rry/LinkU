@@ -120,6 +120,7 @@ alter table "User" enable row level security;
 alter table "Zone" enable row level security;
 alter table "Card" enable row level security;
 alter table "Profile" enable row level security;
+alter table "Subscription" enable row level security;
 
 -- User：允许读取自己 + 有 ACTIVE 卡片的用户（推荐页需要 join）
 drop policy if exists "user_select_self" on "User";
@@ -293,11 +294,19 @@ on "Report"
 for insert
 to authenticated
 with check ("reporterId" = auth.uid()::text);
+
+-- Subscription：允许用户读取自己的会员权益；没有记录时前端展示 FREE
+drop policy if exists "subscription_select_own" on "Subscription";
+create policy "subscription_select_own"
+on "Subscription"
+for select
+to authenticated
+using ("userId" = auth.uid()::text);
 ```
 
 ## 6. 当前能力边界
 
-- 已支持：Supabase 注册 / 登录、登录用户直接发布 ACTIVE 卡片（免审核）、Supabase 直连推荐、滑卡、双向匹配、联系申请、举报和拉黑。
+- 已支持：Supabase 注册 / 登录、登录用户直接发布 ACTIVE 卡片（免审核）、Supabase 直连推荐、滑卡、双向匹配、联系申请、举报、拉黑和会员权益读取。
 - 尚不支持：AI 智能解析（有本地 fallback）、后台审核写操作。
 - 保留代码：NestJS API 和 Prisma 服务端逻辑先不删，等 Netlify + Supabase MVP 跑稳后再选择是否迁回服务端。
 

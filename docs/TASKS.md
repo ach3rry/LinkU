@@ -18,6 +18,7 @@
 5. **文档更新**：SUPABASE_MVP_SETUP.md 补充了预设数据 SQL、RLS 策略更新说明，并拆出 `supabase/` 目录下的可执行 SQL 文件
 6. **找回登录能力**：登录面板支持发送重置邮件和设置新密码，认证代理会保留 Supabase Auth query string
 7. **Profile 资料编辑**：个人主页支持 Supabase 直连读取/保存学校、城市、年级、专业、简介
+8. **会员状态真实权益**：个人主页会员状态读取 Supabase `"Subscription"` 表；无记录时展示 FREE 权益
 
 ### 待在 Supabase Dashboard 手动完成（代码改不了，必须手动）
 
@@ -128,6 +129,13 @@
    CREATE POLICY "report_insert_own"
    ON "Report" FOR INSERT TO authenticated
    WITH CHECK ("reporterId" = auth.uid()::text);
+
+   -- Subscription：允许用户读取自己的会员权益
+   ALTER TABLE "Subscription" ENABLE ROW LEVEL SECURITY;
+   DROP POLICY IF EXISTS "subscription_select_own" ON "Subscription";
+   CREATE POLICY "subscription_select_own"
+   ON "Subscription" FOR SELECT TO authenticated
+   USING ("userId" = auth.uid()::text);
    ```
 
 3. **插入预设演示数据**（见 `docs/SUPABASE_MVP_SETUP.md` 第 4 节完整 SQL）：4 个演示用户 + 4 张预设卡片（家教/搭子/学长学姐各至少一张）
@@ -261,7 +269,7 @@
 - [x] Supabase RLS 文档补齐滑卡、匹配、联系申请、举报、拉黑写入策略
 - [x] Admin 页面 Supabase 直连读取举报和卡片
 - [x] 我的资料编辑页（学校、城市、年级、专业、简介）
-- [ ] 会员状态从占位表切换为真实权益表
+- [x] 会员状态从占位表切换为真实权益表
 - [ ] 学长学姐专区 MVP 规则定稿
 - [ ] 支付保持禁用或接入真实支付沙箱
 - [ ] 空状态、错误状态、加载状态补齐

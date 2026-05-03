@@ -2,7 +2,12 @@
 
 import { createClient, type Session, type SupabaseClient } from "@supabase/supabase-js";
 import { useEffect, useMemo, useState } from "react";
-import { type GeneratedCardResponse, type ParsedDemandResponse } from "./api";
+import {
+  type GeneratedCardResponse,
+  type MembershipResponse,
+  type ParsedDemandResponse,
+  type UsageResponse,
+} from "./api";
 
 let browserClient: SupabaseClient | null = null;
 
@@ -17,6 +22,36 @@ const onlineModeMap = {
   offline: "OFFLINE",
   hybrid: "HYBRID",
 } as const;
+
+const subscriptionPolicies = {
+  FREE: {
+    dailySwipeLimit: 50,
+    dailyRightSwipeLimit: 10,
+    canSeeWhoLikedMe: false,
+    canUseAdvancedFilters: false,
+    priorityBoost: 0,
+  },
+  SEMESTER: {
+    dailySwipeLimit: 200,
+    dailyRightSwipeLimit: 60,
+    canSeeWhoLikedMe: true,
+    canUseAdvancedFilters: true,
+    priorityBoost: 5,
+  },
+  PREMIUM_MOCK: {
+    dailySwipeLimit: 999,
+    dailyRightSwipeLimit: 999,
+    canSeeWhoLikedMe: true,
+    canUseAdvancedFilters: true,
+    priorityBoost: 10,
+  },
+} as const;
+
+type SubscriptionPlan = keyof typeof subscriptionPolicies;
+
+function isSubscriptionPlan(value: unknown): value is SubscriptionPlan {
+  return typeof value === "string" && value in subscriptionPolicies;
+}
 
 export function isSupabaseConfigured() {
   return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
@@ -260,6 +295,78 @@ export async function upsertSupabaseProfile(
   }
 
   return data as SupabaseProfile;
+}
+
+export async function getSupabaseMembership(
+  client: SupabaseClient,
+  session: Session,
+): Promise<MembershipResponse> {
+  await upsertCurrentSupabaseUser(client, session);
+
+  const { data, error } = await client
+    .from("Subscription")
+    .select("plan, status, source, startsAt, endsAt, createdAt")
+    .eq("userId", session.user.id)
+    .eq("status", "ACTIVE")
+    .order("createdAt", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[Supabase] getSupabaseMembership error:", error);
+    throw new Error(error.message);
+  }
+
+  const plan = isSubscriptionPlan(data?.plan) ? data.plan : "FREE";
+
+  return {
+    plan,
+    status: typeof data?.status === "string" ? data.status : "ACTIVE",
+    source: typeof data?.source === "string" ? data.source : "supabase",
+    policy: subscriptionPolicies[plan],
+  };
+}
+
+export async function getSupabaseUsage(
+  client: SupabaseClient,
+  session: Session,
+  membership?: MembershipResponse,
+): Promise<UsageResponse> {
+  const activeMembership = membership ?? (await getSupabaseMembership(client, session));
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const [swipeResult, rightSwipeResult] = await Promise.all([
+    client
+      .from("Swipe")
+      .select("id", { count: "exact", head: true })
+      .eq("swiperId", session.user.id)
+      .gte("createdAt", today.toISOString()),
+    client
+      .from("Swipe")
+      .select("id", { count: "exact", head: true })
+      .eq("swiperId", session.user.id)
+      .eq("direction", "RIGHT")
+      .gte("createdAt", today.toISOString()),
+  ]);
+
+  if (swipeResult.error || rightSwipeResult.error) {
+    console.error("[Supabase] getSupabaseUsage error:", swipeResult.error ?? rightSwipeResult.error);
+    throw new Error(swipeResult.error?.message ?? rightSwipeResult.error?.message ?? "用量读取失败。");
+  }
+
+  const swipeCount = swipeResult.count ?? 0;
+  const rightSwipeCount = rightSwipeResult.count ?? 0;
+
+  return {
+    plan: activeMembership.plan,
+    dailySwipeLimit: activeMembership.policy.dailySwipeLimit,
+    dailyRightSwipeLimit: activeMembership.policy.dailyRightSwipeLimit,
+    swipeCount,
+    rightSwipeCount,
+    swipeRemaining: Math.max(0, activeMembership.policy.dailySwipeLimit - swipeCount),
+    rightSwipeRemaining: Math.max(0, activeMembership.policy.dailyRightSwipeLimit - rightSwipeCount),
+  };
 }
 
 // ---- Supabase direct swipe/match/contact ----

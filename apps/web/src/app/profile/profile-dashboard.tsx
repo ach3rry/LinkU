@@ -16,7 +16,9 @@ import {
   type UsageResponse,
 } from "../../lib/api";
 import {
+  getSupabaseMembership,
   getSupabaseProfile,
+  getSupabaseUsage,
   isSupabaseDirectMode,
   upsertSupabaseProfile,
   type SupabaseProfile,
@@ -131,14 +133,30 @@ export function ProfileDashboard() {
       if (isSupabaseDirectMode() && supabaseClient) {
         try {
           let profileLoadError: string | undefined;
+          let membershipLoadError: string | undefined;
+          let usageLoadError: string | undefined;
           const profilePromise = getSupabaseProfile(supabaseClient, session).catch((error: Error) => {
             console.error("[Profile] Profile query error:", error);
             profileLoadError = error.message;
             return null;
           });
+          const membershipPromise = getSupabaseMembership(supabaseClient, session).catch((error: Error) => {
+            console.error("[Profile] Membership query error:", error);
+            membershipLoadError = error.message;
+            return fallbackMembership;
+          });
+          const usagePromise = membershipPromise
+            .then((loadedMembership) => getSupabaseUsage(supabaseClient, session, loadedMembership))
+            .catch((error: Error) => {
+              console.error("[Profile] Usage query error:", error);
+              usageLoadError = error.message;
+              return fallbackUsage;
+            });
 
-          const [profileResult, cardsResult, matchesResult] = await Promise.all([
+          const [profileResult, membershipResult, usageResult, cardsResult, matchesResult] = await Promise.all([
             profilePromise,
+            membershipPromise,
+            usagePromise,
             supabaseClient
               .from("Card")
               .select("id, title, subtitle, tags, status, zone:Zone(code, name)")
@@ -155,6 +173,8 @@ export function ProfileDashboard() {
 
           setProfile(profileResult);
           setProfileForm(toProfileForm(profileResult, session.user.user_metadata));
+          setMembership(membershipResult);
+          setUsage(usageResult);
           setProfileMessage(
             profileLoadError
               ? `资料读取失败: ${profileLoadError}`
@@ -177,7 +197,11 @@ export function ProfileDashboard() {
           }
 
           if (!cardsResult.error) {
-            setStatusText("我的信息已更新。");
+            setStatusText(
+              membershipLoadError || usageLoadError
+                ? `会员信息读取失败: ${membershipLoadError ?? usageLoadError}`
+                : "我的信息已更新。",
+            );
           }
         } catch (err) {
           if (cancelled) return;

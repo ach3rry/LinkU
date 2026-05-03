@@ -8,6 +8,11 @@
 - `apps/web/src/app/profile/profile-dashboard.tsx` 只在现有右侧区域增加一块轻量表单，左侧个人主页摘要会优先使用 `"Profile"` 表数据。
 - 保存依赖 `supabase/mvp_rls.sql` 里的 `profile_insert_own` / `profile_update_own` 策略，线上仍需先在 Supabase Dashboard 手动执行 RLS SQL。
 
+### 会员状态真实权益
+- Profile 页在 Supabase 直连模式下读取 `"Subscription"` 表的最新 ACTIVE 记录，空数据时展示 FREE。
+- 前端复用后端已有的 FREE / SEMESTER / PREMIUM_MOCK 权益额度，并用 `"Swipe"` 表统计当日滑卡和右滑次数。
+- `supabase/mvp_rls.sql` 和 `docs/SUPABASE_MVP_SETUP.md` 补充 `subscription_select_own` 策略。
+
 ## 最近完成的工作（2026-05-03）
 
 ### Supabase 云数据库初始化
