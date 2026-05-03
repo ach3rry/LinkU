@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { AIInsightBox } from "../../components/ai-insight-box";
 import { TagPill } from "../../components/tag-pill";
 import { Button } from "../../components/ui/button";
@@ -16,7 +16,10 @@ import {
   type UsageResponse,
 } from "../../lib/api";
 import {
+  getSupabaseProfile,
   isSupabaseDirectMode,
+  upsertSupabaseProfile,
+  type SupabaseProfile,
   useSupabaseSession,
 } from "../../lib/supabase";
 import { mockProfile } from "../../lib/mock-data";
@@ -53,16 +56,50 @@ type UserCard = {
   zone: { code: string; name: string };
 };
 
+type ProfileForm = {
+  school: string;
+  city: string;
+  grade: string;
+  major: string;
+  bio: string;
+};
+
+const emptyProfileForm: ProfileForm = {
+  school: "",
+  city: "",
+  grade: "",
+  major: "",
+  bio: "",
+};
+
 function readTags(value: unknown) {
   return Array.isArray(value)
     ? value.filter((item): item is string => typeof item === "string")
     : [];
 }
 
+function readMetadataString(value: unknown) {
+  return typeof value === "string" ? value : "";
+}
+
+function toProfileForm(profile: SupabaseProfile | null, metadata: Record<string, unknown> = {}) {
+  return {
+    school: profile?.school ?? readMetadataString(metadata.school),
+    city: profile?.city ?? readMetadataString(metadata.city),
+    grade: profile?.grade ?? readMetadataString(metadata.grade),
+    major: profile?.major ?? readMetadataString(metadata.major),
+    bio: profile?.bio ?? readMetadataString(metadata.bio),
+  };
+}
+
 export function ProfileDashboard() {
   const { client: supabaseClient, isReady, session, user } = useSupabaseSession();
   const [myCards, setMyCards] = useState<UserCard[]>([]);
   const [matchCount, setMatchCount] = useState(0);
+  const [profile, setProfile] = useState<SupabaseProfile | null>(null);
+  const [profileForm, setProfileForm] = useState<ProfileForm>(emptyProfileForm);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [profileMessage, setProfileMessage] = useState("登录后可以补充学校、城市、年级和专业。");
   const [membership, setMembership] = useState(fallbackMembership);
   const [usage, setUsage] = useState(fallbackUsage);
   const [premiumEntries, setPremiumEntries] = useState<PremiumEntry[]>([]);
@@ -70,8 +107,9 @@ export function ProfileDashboard() {
   const [statusText, setStatusText] = useState("正在读取我的信息...");
 
   const nickname = user?.user_metadata?.nickname ?? user?.email?.split("@")[0] ?? mockProfile.nickname;
-  const school = user?.user_metadata?.school ?? "";
-  const city = user?.user_metadata?.city ?? "";
+  const school = profile?.school ?? readMetadataString(user?.user_metadata?.school);
+  const city = profile?.city ?? readMetadataString(user?.user_metadata?.city);
+  const profileSummary = [school, city, profile?.grade, profile?.major].filter(Boolean).join(" · ");
 
   useEffect(() => {
     let cancelled = false;
@@ -83,13 +121,24 @@ export function ProfileDashboard() {
       // Not logged in
       if (!session) {
         setStatusText("登录后查看我的主页。");
+        setProfile(null);
+        setProfileForm(emptyProfileForm);
+        setProfileMessage("登录后可以补充学校、城市、年级和专业。");
         return;
       }
 
       // Supabase direct mode
       if (isSupabaseDirectMode() && supabaseClient) {
         try {
-          const [cardsResult, matchesResult] = await Promise.all([
+          let profileLoadError: string | undefined;
+          const profilePromise = getSupabaseProfile(supabaseClient, session).catch((error: Error) => {
+            console.error("[Profile] Profile query error:", error);
+            profileLoadError = error.message;
+            return null;
+          });
+
+          const [profileResult, cardsResult, matchesResult] = await Promise.all([
+            profilePromise,
             supabaseClient
               .from("Card")
               .select("id, title, subtitle, tags, status, zone:Zone(code, name)")
@@ -103,6 +152,16 @@ export function ProfileDashboard() {
           ]);
 
           if (cancelled) return;
+
+          setProfile(profileResult);
+          setProfileForm(toProfileForm(profileResult, session.user.user_metadata));
+          setProfileMessage(
+            profileLoadError
+              ? `资料读取失败: ${profileLoadError}`
+              : profileResult
+                ? "资料已同步，可以继续调整。"
+                : "还没有资料，先补上学校和城市。",
+          );
 
           if (cardsResult.error) {
             console.error("[Profile] Card query error:", cardsResult.error);
@@ -163,6 +222,47 @@ export function ProfileDashboard() {
     };
   }, [supabaseClient, isReady, session]);
 
+  function updateProfileForm(field: keyof ProfileForm, value: string) {
+    setProfileForm((current) => ({
+      ...current,
+      [field]: value,
+    }));
+  }
+
+  async function handleProfileSave(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!session || !supabaseClient) {
+      setProfileMessage("请先登录，再保存资料。");
+      return;
+    }
+
+    if (!isSupabaseDirectMode()) {
+      setProfileMessage("当前数据模式暂不支持前端直连保存资料。");
+      return;
+    }
+
+    if (!profileForm.school.trim() || !profileForm.city.trim()) {
+      setProfileMessage("学校和城市是必填项。");
+      return;
+    }
+
+    try {
+      setIsSavingProfile(true);
+      setProfileMessage("正在保存资料...");
+      const savedProfile = await upsertSupabaseProfile(supabaseClient, session, profileForm);
+      setProfile(savedProfile);
+      setProfileForm(toProfileForm(savedProfile, session.user.user_metadata));
+      setProfileMessage("资料已保存。");
+      setStatusText("我的信息已更新。");
+    } catch (error) {
+      console.error("[Profile] Save profile error:", error);
+      setProfileMessage(error instanceof Error ? error.message : "资料保存失败，请稍后再试。");
+    } finally {
+      setIsSavingProfile(false);
+    }
+  }
+
   async function handleMockCheckout() {
     if (!token) {
       setStatusText("请先登录，再查看会员。");
@@ -212,6 +312,77 @@ export function ProfileDashboard() {
               查看学期会员
             </Button>
           </AIInsightBox>
+
+          <form className="rounded-[2rem] bg-white/72 p-6" onSubmit={handleProfileSave}>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-black text-campus-grass">我的资料</p>
+                <h2 className="mt-2 font-display text-4xl font-black">学校信息</h2>
+                <p className="mt-2 text-sm leading-6 text-campus-ink/60">
+                  {profileSummary || "补充资料后，别人能更准确判断是否适合互助。"}
+                </p>
+              </div>
+              <Button type="submit" size="sm" disabled={isSavingProfile || !session}>
+                {isSavingProfile ? "保存中" : "保存"}
+              </Button>
+            </div>
+
+            <div className="mt-5 grid gap-4 md:grid-cols-2">
+              <label className="text-sm font-bold text-campus-ink/72">
+                学校
+                <input
+                  className="mt-2 h-11 w-full rounded-2xl border border-campus-ink/10 bg-campus-paper px-4 text-sm font-semibold outline-none transition focus:border-campus-grass"
+                  value={profileForm.school}
+                  onChange={(event) => updateProfileForm("school", event.target.value)}
+                  placeholder="例如：同济大学"
+                  maxLength={60}
+                  required
+                />
+              </label>
+              <label className="text-sm font-bold text-campus-ink/72">
+                城市
+                <input
+                  className="mt-2 h-11 w-full rounded-2xl border border-campus-ink/10 bg-campus-paper px-4 text-sm font-semibold outline-none transition focus:border-campus-grass"
+                  value={profileForm.city}
+                  onChange={(event) => updateProfileForm("city", event.target.value)}
+                  placeholder="例如：上海"
+                  maxLength={40}
+                  required
+                />
+              </label>
+              <label className="text-sm font-bold text-campus-ink/72">
+                年级
+                <input
+                  className="mt-2 h-11 w-full rounded-2xl border border-campus-ink/10 bg-campus-paper px-4 text-sm font-semibold outline-none transition focus:border-campus-grass"
+                  value={profileForm.grade}
+                  onChange={(event) => updateProfileForm("grade", event.target.value)}
+                  placeholder="例如：大二 / 研一"
+                  maxLength={30}
+                />
+              </label>
+              <label className="text-sm font-bold text-campus-ink/72">
+                专业
+                <input
+                  className="mt-2 h-11 w-full rounded-2xl border border-campus-ink/10 bg-campus-paper px-4 text-sm font-semibold outline-none transition focus:border-campus-grass"
+                  value={profileForm.major}
+                  onChange={(event) => updateProfileForm("major", event.target.value)}
+                  placeholder="例如：计算机科学"
+                  maxLength={80}
+                />
+              </label>
+            </div>
+            <label className="mt-4 block text-sm font-bold text-campus-ink/72">
+              简介
+              <textarea
+                className="mt-2 min-h-28 w-full resize-none rounded-2xl border border-campus-ink/10 bg-campus-paper px-4 py-3 text-sm font-semibold leading-6 outline-none transition focus:border-campus-grass"
+                value={profileForm.bio}
+                onChange={(event) => updateProfileForm("bio", event.target.value)}
+                placeholder="写一点学习方向、可提供的帮助，或你希望别人知道的边界。"
+                maxLength={300}
+              />
+            </label>
+            <p className="mt-3 text-sm leading-6 text-campus-ink/60">{profileMessage}</p>
+          </form>
 
           <div className="rounded-[2rem] bg-white/72 p-6">
             <div className="flex items-center justify-between gap-4">

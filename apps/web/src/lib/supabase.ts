@@ -180,6 +180,88 @@ export async function createSupabaseCard(
   return data;
 }
 
+export type SupabaseProfile = {
+  id: string;
+  userId: string;
+  school: string;
+  city: string;
+  grade?: string | null;
+  major?: string | null;
+  bio?: string | null;
+  verifiedStatus: "UNVERIFIED" | "STUDENT_VERIFIED" | "PROVIDER_VERIFIED";
+};
+
+export type SupabaseProfileInput = {
+  school: string;
+  city: string;
+  grade?: string;
+  major?: string;
+  bio?: string;
+};
+
+function trimOptional(value?: string) {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : null;
+}
+
+export async function getSupabaseProfile(client: SupabaseClient, session: Session) {
+  await upsertCurrentSupabaseUser(client, session);
+
+  const { data, error } = await client
+    .from("Profile")
+    .select("id, userId, school, city, grade, major, bio, verifiedStatus")
+    .eq("userId", session.user.id)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[Supabase] getSupabaseProfile error:", error);
+    throw new Error(error.message);
+  }
+
+  return data as SupabaseProfile | null;
+}
+
+export async function upsertSupabaseProfile(
+  client: SupabaseClient,
+  session: Session,
+  input: SupabaseProfileInput,
+) {
+  await upsertCurrentSupabaseUser(client, session);
+
+  const school = input.school.trim();
+  const city = input.city.trim();
+
+  if (!school || !city) {
+    throw new Error("学校和城市不能为空。");
+  }
+
+  const { data, error } = await client
+    .from("Profile")
+    .upsert(
+      {
+        userId: session.user.id,
+        school,
+        city,
+        grade: trimOptional(input.grade),
+        major: trimOptional(input.major),
+        bio: trimOptional(input.bio),
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        onConflict: "userId",
+      },
+    )
+    .select("id, userId, school, city, grade, major, bio, verifiedStatus")
+    .single();
+
+  if (error || !data) {
+    console.error("[Supabase] upsertSupabaseProfile error:", error);
+    throw new Error(error?.message ?? "资料没有保存成功，请稍后再试。");
+  }
+
+  return data as SupabaseProfile;
+}
+
 // ---- Supabase direct swipe/match/contact ----
 
 export type SupabaseRecommendation = {

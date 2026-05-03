@@ -1,5 +1,13 @@
 # LinkU 开发会话记录
 
+## 本次会话记录（2026-05-04）
+
+### Profile 资料编辑
+- 在 Supabase 直连模式下，个人主页新增资料读取与保存：学校、城市、年级、专业、简介。
+- `apps/web/src/lib/supabase.ts` 新增 `getSupabaseProfile` / `upsertSupabaseProfile`，保存前会确保当前 Supabase 用户已同步到 `"User"` 表。
+- `apps/web/src/app/profile/profile-dashboard.tsx` 只在现有右侧区域增加一块轻量表单，左侧个人主页摘要会优先使用 `"Profile"` 表数据。
+- 保存依赖 `supabase/mvp_rls.sql` 里的 `profile_insert_own` / `profile_update_own` 策略，线上仍需先在 Supabase Dashboard 手动执行 RLS SQL。
+
 ## 最近完成的工作（2026-05-03）
 
 ### Supabase 云数据库初始化
