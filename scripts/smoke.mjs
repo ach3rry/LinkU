@@ -32,6 +32,7 @@ const requiredFiles = [
   "apps/api/prisma/schema.prisma",
   "apps/api/prisma/seed.ts",
   "apps/api/src/app.controller.ts",
+  "apps/api/src/app.module.test.ts",
   "apps/api/src/safety/safety.service.test.ts",
   "apps/api/src/subscriptions/subscription-policy.test.ts",
   "apps/web/src/app/page.tsx",
