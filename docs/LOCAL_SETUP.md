@@ -44,6 +44,18 @@ pnpm install
 
 ## 初始化数据库
 
+如果本机有 Docker Desktop，可以直接启动项目自带的本地 PostgreSQL：
+
+```bash
+pnpm db:start
+```
+
+默认本地连接串：
+
+```env
+DATABASE_URL=postgresql://linku:linku_dev_password@localhost:5432/linku
+```
+
 MVP 阶段使用 Prisma `db push` 同步 schema：
 
 ```bash

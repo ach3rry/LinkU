@@ -11,6 +11,8 @@
     "test": "pnpm --filter @linku/api test",
     "smoke": "node scripts/smoke.mjs",
     "format": "prettier --write .",
+    "db:start": "docker compose up -d postgres",
+    "db:stop": "docker compose stop postgres",
     "db:generate": "pnpm --filter @linku/api db:generate",
     "db:push": "pnpm --filter @linku/api db:push",
     "db:seed": "pnpm --filter @linku/api db:seed"

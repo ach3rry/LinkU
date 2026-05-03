@@ -31,6 +31,7 @@ pnpm --filter @linku/web build
 涉及 Prisma schema、seed 或数据库访问逻辑时额外运行：
 
 ```bash
+pnpm db:start
 pnpm db:generate
 pnpm db:push
 pnpm db:seed

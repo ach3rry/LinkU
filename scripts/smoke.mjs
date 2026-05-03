@@ -23,6 +23,7 @@ function fileExists(relativePath) {
 
 const requiredFiles = [
   ".github/workflows/ci.yml",
+  "docker-compose.yml",
   "README.md",
   "docs/TASKS.md",
   "docs/LOCAL_SETUP.md",
@@ -44,7 +45,16 @@ for (const file of requiredFiles) {
 }
 
 const packageJson = JSON.parse(read("package.json"));
-const requiredScripts = ["lint", "typecheck", "test", "smoke", "db:generate", "db:push", "db:seed"];
+const requiredScripts = [
+  "lint",
+  "typecheck",
+  "test",
+  "smoke",
+  "db:start",
+  "db:generate",
+  "db:push",
+  "db:seed",
+];
 
 for (const script of requiredScripts) {
   assert(Boolean(packageJson.scripts?.[script]), `Missing package script: ${script}`);
