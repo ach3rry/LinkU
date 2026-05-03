@@ -6,7 +6,16 @@
 - 阶段 12 已开始：Supabase Auth 前端登录 / 注册已完成；找回登录、用户资料必填项校验、管理员角色、OAuth 等待后续。
 - 阶段 15 已开始：Swipe、Profile 页面已支持 Supabase 直连；Admin 页面待改造；空状态和加载状态待补齐。
 - 阶段 16 已基本完成：Netlify Web 已部署至 https://linkuni.netlify.app/ ；Supabase Postgres schema、Zone 数据、RLS 策略已初始化。
-- **Supabase 直连模式已支持完整的 MVP 闭环**：注册 → 建卡（直接 ACTIVE）→ 推荐 → 滑卡 → 双向匹配 → 联系申请 → 举报/拉黑。
+- **Supabase 直连模式已支持完整的 MVP 闭环**：注册 → 建卡（直接 ACTIVE，免审核）→ 推荐 → 滑卡 → 双向匹配 → 联系申请 → 举报/拉黑。
+
+### 重要技术备注
+
+1. **数据库 DEFAULT**：所有表的 id、createdAt、updatedAt 已在数据库层加 DEFAULT。Prisma 的 @default(uuid()) 和 @updatedAt 只在 Prisma Client 写入时生效，Supabase 直连需要数据库层 DEFAULT。
+2. **建卡免审核**：卡片状态直接为 ACTIVE，不走 PENDING 审核流程。前端 `supabase.ts` 和后端 `cards.service.ts` 均已改为 ACTIVE。
+3. **环境变量**：Netlify 的 NEXT_PUBLIC_SUPABASE_ANON_KEY 粘贴时不能有换行或空格，否则 JWT 截断导致 401。
+4. **认证代理**：新增 `/api/auth/[...path]` 服务端代理，浏览器直连 Supabase 失败时自动回退。
+5. **Supabase 邮件确认**：默认开启，建议 MVP 阶段在 Dashboard 关掉（Authentication → Providers → Email → Confirm email）。
+6. **详细会话记录**：见 docs/SESSION_LOG.md。
 
 ## 阶段 0：仓库初始化
 
