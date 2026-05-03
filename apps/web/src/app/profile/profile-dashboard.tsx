@@ -16,7 +16,6 @@ import {
   type UsageResponse,
 } from "../../lib/api";
 import {
-  getSupabaseBrowserClient,
   isSupabaseDirectMode,
   useSupabaseSession,
 } from "../../lib/supabase";
