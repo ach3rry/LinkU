@@ -107,6 +107,8 @@ export async function upsertCurrentSupabaseUser(client: SupabaseClient, session:
       role: "USER",
       status: "ACTIVE",
       lastActiveAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     },
     {
       onConflict: "id",
