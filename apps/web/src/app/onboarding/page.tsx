@@ -15,14 +15,12 @@ export default async function OnboardingPage({
   return (
     <main className="mx-auto w-full max-w-6xl px-5 py-12">
       <section className="mb-8 max-w-3xl">
-        <p className="text-sm font-black uppercase tracking-[0.24em] text-campus-grass">
-          Onboarding
-        </p>
+        <p className="text-sm font-black text-campus-grass">建卡</p>
         <h1 className="mt-4 font-display text-5xl font-black leading-tight md:text-6xl">
-          一句话建卡，先把表达成本降下来。
+          一句话建卡，把需求说清楚。
         </h1>
         <p className="mt-5 text-lg leading-8 text-campus-ink/70">
-          这里先用 fallback 规则模拟 AI Link。后续接入 Provider 后，解析和文案会走真实模型。
+          选一个专区，写下你想找的人。LinkU 会帮你整理成一张等待审核的卡片。
         </p>
       </section>
       <OnboardingStepper initialZone={toZoneCode(params?.zone)} />

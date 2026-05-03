@@ -74,7 +74,7 @@ export function SwipeCard({
       </dl>
 
       <div className="mt-7">
-        <AIInsightBox title="AI 推荐理由">{card.reason}</AIInsightBox>
+        <AIInsightBox title="推荐理由">{card.reason}</AIInsightBox>
       </div>
 
       <div className="mt-5 flex justify-end gap-2 border-t border-campus-ink/10 pt-4">

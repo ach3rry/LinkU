@@ -4,7 +4,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "LinkU",
-  description: "AI 校园滑卡匹配平台",
+  description: "校园滑卡匹配平台",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

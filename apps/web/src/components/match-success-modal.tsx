@@ -56,7 +56,7 @@ export function MatchSuccessModal({
             </div>
 
             <div className="mt-5 space-y-3">
-              <p className="text-sm font-black text-campus-ink/55">AI 破冰话术</p>
+              <p className="text-sm font-black text-campus-ink/55">开场话术</p>
               {icebreakers.map((text) => (
                 <button
                   key={text}

@@ -11,13 +11,11 @@ export function LandingStage() {
     <main>
       <section className="relative isolate flex min-h-[calc(100svh-4rem)] overflow-hidden px-5 py-10">
         <motion.div
-          className="absolute inset-y-10 right-0 -z-10 hidden w-[52vw] rounded-l-[4rem] bg-campus-ink lg:block"
+          className="absolute inset-y-0 right-0 -z-10 hidden w-[52vw] rounded-bl-[4rem] bg-campus-ink lg:block"
           initial={{ x: 120, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           transition={{ duration: 0.7, ease: "easeOut" }}
         />
-        <div className="absolute left-[8%] top-20 -z-10 h-72 w-72 rounded-full bg-campus-lime/70 blur-3xl" />
-        <div className="absolute bottom-10 right-[16%] -z-10 h-80 w-80 rounded-full bg-campus-coral/30 blur-3xl" />
 
         <div className="mx-auto grid w-full max-w-6xl items-center gap-12 lg:grid-cols-[1fr_0.82fr]">
           <motion.div
@@ -26,7 +24,7 @@ export function LandingStage() {
             transition={{ duration: 0.55 }}
           >
             <p className="mb-5 inline-flex rounded-full bg-campus-lime px-4 py-2 text-sm font-black">
-              不发帖，不刷屏，只滑到合适的人
+              不发帖，不刷屏，只遇到合适的人
             </p>
             <h1 className="font-display text-6xl font-black leading-[0.92] tracking-tight md:text-8xl">
               LinkU
@@ -34,7 +32,7 @@ export function LandingStage() {
               变轻一点。
             </h1>
             <p className="mt-7 max-w-2xl text-lg leading-8 text-campus-ink/72">
-              输入一句需求，AI 自动解析、生成卡片、解释匹配理由，并在双向确认后发起联系申请。
+              输入一句需求，LinkU 帮你整理成卡片。双向确认后，再决定要不要联系。
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Button asChild size="lg">
@@ -44,7 +42,7 @@ export function LandingStage() {
                 </Link>
               </Button>
               <Button asChild variant="secondary" size="lg">
-                <Link href="/swipe">先看滑卡 Demo</Link>
+                <Link href="/swipe">先看看卡片</Link>
               </Button>
             </div>
           </motion.div>
@@ -61,7 +59,7 @@ export function LandingStage() {
                   <span className="rounded-full bg-campus-lime px-3 py-1 text-xs font-black">
                     88% 匹配
                   </span>
-                  <span className="text-xs font-bold text-campus-ink/45">AI Link</span>
+                  <span className="text-xs font-bold text-campus-ink/45">LinkU</span>
                 </div>
                 <h2 className="mt-10 font-display text-4xl font-black leading-tight">
                   高数 / 线代耐心辅导
@@ -107,9 +105,9 @@ export function LandingStage() {
       <section className="mx-auto grid max-w-6xl gap-6 px-5 pb-20 md:grid-cols-2">
         <div className="rounded-[2rem] bg-white/72 p-7">
           <Sparkles className="h-6 w-6 text-campus-grass" />
-          <h2 className="mt-5 font-display text-3xl font-black">AI 负责变清楚</h2>
+          <h2 className="mt-5 font-display text-3xl font-black">先把需求讲清楚</h2>
           <p className="mt-3 leading-7 text-campus-ink/70">
-            需求解析、卡片文案、推荐理由和破冰话术都先由 AI Link 辅助生成，失败时走 fallback。
+            一句话就能开始，卡片会保留专区、时间、预算、地点和边界。
           </p>
         </div>
         <div className="rounded-[2rem] bg-campus-ink p-7 text-campus-paper">

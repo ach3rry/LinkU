@@ -7,10 +7,12 @@ import {
   type ParsedDemandResponse,
   createGeneratedCard,
   generateCardDraft,
-  mockLogin,
+  getApiAccessToken,
   parseDemand,
 } from "../lib/api";
+import { useSupabaseSession } from "../lib/supabase";
 import { AIInsightBox } from "./ai-insight-box";
+import { AuthPanel } from "./auth-panel";
 import { SafetyNotice } from "./safety-notice";
 import { TagPill } from "./tag-pill";
 import { Button } from "./ui/button";
@@ -18,7 +20,7 @@ import { Button } from "./ui/button";
 const demandPlaceholders: Record<ZoneCode, string> = {
   tutoring: "例如：想找一个周末能线下教高数的学姐，预算 100/h 左右。",
   buddy: "例如：想找一个工作日晚上一起自习和吃晚饭的同校搭子，边界清楚一点。",
-  premium: "例如：想约一位做过 AI 后端项目的学长，帮我改简历和梳理面试表达。",
+  premium: "例如：想约一位做过项目实战的学长，帮我改简历和梳理面试表达。",
 };
 
 const previewCopy: Record<
@@ -60,12 +62,12 @@ const previewCopy: Record<
   premium: {
     intent: "寻找高价值经验咨询",
     boundary: "咨询主题、交付范围和价格预期先讲清楚",
-    title: "Premium Match 经验咨询预约",
+    title: "学长学姐经验咨询预约",
     subtitle: "按咨询主题、目标阶段和交付方式生成学长学姐卡片",
-    tags: ["简历修改", "AI Coding", "项目表达", "Premium"],
+    tags: ["简历修改", "项目陪跑", "项目表达", "经验咨询"],
     meta: [
       { label: "匹配重点", value: "方向、经验背景、交付形式、价格预期" },
-      { label: "推荐字段", value: "服务范围 / 预约制 / mock 支付占位" },
+      { label: "推荐字段", value: "服务范围 / 预约制 / 价格预期" },
     ],
     tone: "先明确要解决的问题，避免把高价值咨询聊散。",
   },
@@ -92,21 +94,21 @@ function buildPreview(text: string, zone: ZoneCode) {
     ...copy,
     zone,
     tags: pickTags(text, zone),
-    description: text.trim() || "先输入一句需求，LinkU 会按当前专区生成更贴合的卡片预览。",
+    description: text.trim() || "先写一句需求，LinkU 会按当前专区整理成清楚的卡片。",
   };
 }
 
 function normalizeError(error: unknown) {
-  const message = error instanceof Error ? error.message : "生成失败，请稍后重试";
+  const message = error instanceof Error ? error.message : "生成没有完成，请稍后再试";
 
   if (
     /Environment variable not found|DATABASE_URL|Can't reach database|P1001|P1012/i.test(message)
   ) {
-    return "后端已接入 DeepSeek，但本地数据库还没配置好。请先配置 DATABASE_URL，并运行 pnpm db:push && pnpm db:seed。";
+    return "数据库还没有准备好，请先完成本地数据初始化。";
   }
 
   if (/专区不存在|尚未初始化/.test(message)) {
-    return "数据库还没有 seed 三大专区。请运行 pnpm db:seed 后再试。";
+    return "专区数据还没有准备好，请先初始化基础数据。";
   }
 
   return message;
@@ -115,12 +117,15 @@ function normalizeError(error: unknown) {
 export function OnboardingStepper({ initialZone }: { initialZone?: ZoneCode }) {
   const [selectedZone, setSelectedZone] = useState<ZoneCode>(initialZone ?? "tutoring");
   const [demand, setDemand] = useState("");
+  const [devToken, setDevToken] = useState<string>();
   const [generatedDraft, setGeneratedDraft] = useState<GeneratedCardResponse | null>(null);
   const [parsedDemand, setParsedDemand] = useState<ParsedDemandResponse | null>(null);
   const [savedCardId, setSavedCardId] = useState<string | null>(null);
-  const [statusText, setStatusText] = useState("输入一句需求后，可以调用 DeepSeek 生成真实卡片。");
+  const [statusText, setStatusText] = useState("写一句需求，LinkU 会整理成一张待审核卡片。");
   const [errorText, setErrorText] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isStartingLocal, setIsStartingLocal] = useState(false);
+  const { client, isReady, token: sessionToken } = useSupabaseSession();
   const fallbackPreview = useMemo(() => buildPreview(demand, selectedZone), [demand, selectedZone]);
   const preview = generatedDraft
     ? {
@@ -133,45 +138,66 @@ export function OnboardingStepper({ initialZone }: { initialZone?: ZoneCode }) {
       }
     : fallbackPreview;
   const activeZone = ZONES.find((zone) => zone.code === selectedZone);
+  const apiToken = sessionToken ?? devToken;
+  const canUseLocalEntry = !client && process.env.NODE_ENV !== "production";
+
+  async function handleStartLocal() {
+    setIsStartingLocal(true);
+    setErrorText(null);
+
+    try {
+      const token = await getApiAccessToken("user");
+      setDevToken(token);
+      setStatusText("可以开始建卡了。");
+    } catch (error) {
+      setErrorText(normalizeError(error));
+    } finally {
+      setIsStartingLocal(false);
+    }
+  }
 
   async function handleGenerateCard() {
     const text = demand.trim();
 
     if (!text) {
-      setErrorText("先输入一句真实需求，再生成卡片。灰色文字只是占位示例。");
+      setErrorText("先写一句真实需求，再生成卡片。");
+      return;
+    }
+
+    if (!apiToken) {
+      setErrorText("请先登录，再生成卡片。");
       return;
     }
 
     setIsGenerating(true);
     setErrorText(null);
     setSavedCardId(null);
-    setStatusText("正在 mock 登录并调用 DeepSeek...");
+    setStatusText("正在整理需求...");
 
     try {
-      const login = await mockLogin("user");
-      const parsed = await parseDemand(login.token, text);
+      const parsed = await parseDemand(apiToken, text);
       const zoneAlignedDemand: ParsedDemandResponse = {
         ...parsed,
         zone: selectedZone,
       };
 
       setParsedDemand(zoneAlignedDemand);
-      setStatusText("DeepSeek 已完成需求解析，正在生成卡片草稿...");
+      setStatusText("需求已整理，正在生成卡片...");
 
-      const draft = await generateCardDraft(login.token, zoneAlignedDemand);
+      const draft = await generateCardDraft(apiToken, zoneAlignedDemand);
       setGeneratedDraft(draft);
-      setStatusText("AI 卡片草稿已生成，正在保存到我的卡片...");
+      setStatusText("卡片已生成，正在保存...");
 
-      const card = await createGeneratedCard(login.token, {
+      const card = await createGeneratedCard(apiToken, {
         demand: zoneAlignedDemand,
         draft,
       });
 
       setSavedCardId(card.id);
-      setStatusText("卡片已保存，状态为待审核。可以去个人中心或 Admin 查看。");
+      setStatusText("卡片已保存，等待审核。");
     } catch (error) {
       setErrorText(normalizeError(error));
-      setStatusText("生成没有完成。");
+      setStatusText("这次没有完成，请稍后再试。");
     } finally {
       setIsGenerating(false);
     }
@@ -180,57 +206,85 @@ export function OnboardingStepper({ initialZone }: { initialZone?: ZoneCode }) {
   return (
     <div className="grid gap-8 lg:grid-cols-[0.92fr_1.08fr]">
       <section className="rounded-[2rem] bg-white/72 p-6 shadow-[0_24px_90px_rgba(23,33,26,0.08)]">
-        <p className="text-sm font-black text-campus-grass">Step 1 / 3</p>
-        <h1 className="mt-3 font-display text-4xl font-black">告诉 LinkU 你想匹配什么</h1>
-        <div className="mt-6 grid gap-3">
-          {ZONES.map((zone) => (
-            <button
-              key={zone.code}
-              onClick={() => setSelectedZone(zone.code)}
-              className={`rounded-2xl border p-4 text-left transition ${
-                selectedZone === zone.code
-                  ? "border-campus-ink bg-campus-lime"
-                  : "border-campus-ink/10 bg-white/60 hover:bg-white"
-              }`}
+        {!isReady ? (
+          <p className="text-sm font-bold text-campus-ink/60">正在准备...</p>
+        ) : !apiToken ? (
+          <div>
+            <p className="text-sm font-black text-campus-grass">Step 1 / 3</p>
+            <h1 className="mt-3 font-display text-4xl font-black leading-tight">先登录，再建卡。</h1>
+            <p className="mt-3 text-sm leading-7 text-campus-ink/62">
+              登录后，LinkU 才能把你生成的卡片放回到你的账号里。
+            </p>
+            <div className="mt-5">
+              <AuthPanel
+                title="进入 LinkU"
+                subtitle="用邮箱登录或注册，之后就可以继续建卡。"
+              />
+            </div>
+            {canUseLocalEntry ? (
+              <Button
+                className="mt-4 w-full"
+                variant="secondary"
+                onClick={handleStartLocal}
+                disabled={isStartingLocal}
+              >
+                {isStartingLocal ? "请稍等" : "进入本地体验"}
+              </Button>
+            ) : null}
+            {errorText ? <p className="mt-3 text-sm font-black text-red-600">{errorText}</p> : null}
+          </div>
+        ) : (
+          <>
+            <p className="text-sm font-black text-campus-grass">Step 1 / 3</p>
+            <h1 className="mt-3 font-display text-4xl font-black">告诉 LinkU 你想匹配什么</h1>
+            <div className="mt-6 grid gap-3">
+              {ZONES.map((zone) => (
+                <button
+                  key={zone.code}
+                  onClick={() => setSelectedZone(zone.code)}
+                  className={`rounded-2xl border p-4 text-left transition ${
+                    selectedZone === zone.code
+                      ? "border-campus-ink bg-campus-lime"
+                      : "border-campus-ink/10 bg-white/60 hover:bg-white"
+                  }`}
+                >
+                  <span className="font-black">{zone.name}</span>
+                  <span className="mt-1 block text-sm text-campus-ink/60">{zone.description}</span>
+                </button>
+              ))}
+            </div>
+
+            <label className="mt-6 block">
+              <span className="text-sm font-black text-campus-ink/60">一句话需求</span>
+              <textarea
+                value={demand}
+                placeholder={demandPlaceholders[selectedZone]}
+                onChange={(event) => {
+                  setDemand(event.target.value);
+                  setGeneratedDraft(null);
+                  setParsedDemand(null);
+                  setSavedCardId(null);
+                  setErrorText(null);
+                  setStatusText("写一句需求，LinkU 会整理成一张待审核卡片。");
+                }}
+                className="mt-3 min-h-36 w-full resize-none rounded-[1.5rem] border border-campus-ink/10 bg-white/80 p-4 leading-7 outline-none transition placeholder:text-campus-ink/38 focus:border-campus-grass"
+              />
+            </label>
+
+            <Button
+              className="mt-5 w-full"
+              size="lg"
+              onClick={handleGenerateCard}
+              disabled={isGenerating}
             >
-              <span className="font-black">{zone.name}</span>
-              <span className="mt-1 block text-sm text-campus-ink/60">{zone.description}</span>
-            </button>
-          ))}
-        </div>
-
-        <label className="mt-6 block">
-          <span className="text-sm font-black text-campus-ink/60">一句话需求</span>
-          <textarea
-            value={demand}
-            placeholder={demandPlaceholders[selectedZone]}
-            onChange={(event) => {
-              setDemand(event.target.value);
-              setGeneratedDraft(null);
-              setParsedDemand(null);
-              setSavedCardId(null);
-              setErrorText(null);
-              setStatusText("输入一句需求后，可以调用 DeepSeek 生成真实卡片。");
-            }}
-            className="mt-3 min-h-36 w-full resize-none rounded-[1.5rem] border border-campus-ink/10 bg-white/80 p-4 leading-7 outline-none transition placeholder:text-campus-ink/38 focus:border-campus-grass"
-          />
-        </label>
-
-        <Button
-          className="mt-5 w-full"
-          size="lg"
-          onClick={handleGenerateCard}
-          disabled={isGenerating}
-        >
-          {isGenerating ? "正在生成..." : "调用 DeepSeek 生成卡片"}
-        </Button>
-        <p className="mt-3 text-sm leading-6 text-campus-ink/56">
-          当前使用 mock login + JWT。真实校园认证还没接入，MVP 阶段先用于本地闭环测试。
-        </p>
+              {isGenerating ? "正在生成" : "生成卡片"}
+            </Button>
+          </>
+        )}
       </section>
 
       <section className="space-y-5">
-        <AIInsightBox title="AI 解析预览">
+        <AIInsightBox title="解析预览">
           <div className="grid gap-3 text-sm">
             <p>
               <strong>专区：</strong>
@@ -246,21 +300,18 @@ export function OnboardingStepper({ initialZone }: { initialZone?: ZoneCode }) {
             </p>
             {parsedDemand ? (
               <p>
-                <strong>AI 状态：</strong>
+                <strong>状态：</strong>
                 {parsedDemand.safetyRisk === "high" ? "高风险，建议先审核" : "可进入建卡流程"}
               </p>
             ) : null}
           </div>
         </AIInsightBox>
 
-        <AIInsightBox title="生成状态">
+        <AIInsightBox title="保存结果">
           <div className="grid gap-2 text-sm leading-6">
             <p>{statusText}</p>
             {savedCardId ? (
-              <p>
-                <strong>卡片 ID：</strong>
-                {savedCardId}
-              </p>
+              <p className="font-black text-campus-grass">卡片已进入审核队列。</p>
             ) : null}
             {errorText ? <p className="font-black text-red-600">{errorText}</p> : null}
           </div>

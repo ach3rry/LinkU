@@ -1,10 +1,9 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
-import { JwtService } from "@nestjs/jwt";
 import { UserRole } from "@prisma/client";
+import { AuthService } from "../auth/auth.service";
 
 type JwtPayload = {
-  sub: string;
+  id: string;
   role: UserRole;
   nickname: string;
   email?: string | null;
@@ -12,10 +11,7 @@ type JwtPayload = {
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
-  constructor(
-    private readonly jwtService: JwtService,
-    private readonly configService: ConfigService,
-  ) {}
+  constructor(private readonly authService: AuthService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<{
@@ -29,20 +25,8 @@ export class JwtAuthGuard implements CanActivate {
       throw new UnauthorizedException("缺少登录凭证");
     }
 
-    try {
-      const payload = await this.jwtService.verifyAsync<JwtPayload>(token, {
-        secret: this.getJwtSecret(),
-      });
-
-      request.user = {
-        ...payload,
-        id: payload.sub,
-      };
-
-      return true;
-    } catch {
-      throw new UnauthorizedException("登录凭证已失效，请重新登录");
-    }
+    request.user = await this.authService.authenticateBearerToken(token);
+    return true;
   }
 
   private extractBearerToken(authorization?: string) {
@@ -50,7 +34,4 @@ export class JwtAuthGuard implements CanActivate {
     return type === "Bearer" ? token : undefined;
   }
 
-  private getJwtSecret() {
-    return this.configService.get<string>("JWT_SECRET") ?? "linku-dev-secret-change-me";
-  }
 }

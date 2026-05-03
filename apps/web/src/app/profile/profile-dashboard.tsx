@@ -7,10 +7,10 @@ import { TagPill } from "../../components/tag-pill";
 import { Button } from "../../components/ui/button";
 import {
   createMockCheckout,
+  getApiAccessToken,
   getMembership,
   getPremiumEntries,
   getUsage,
-  mockLogin,
   type MembershipResponse,
   type PremiumEntry,
   type UsageResponse,
@@ -52,30 +52,36 @@ export function ProfileDashboard() {
   const [usage, setUsage] = useState(fallbackUsage);
   const [premiumEntries, setPremiumEntries] = useState<PremiumEntry[]>([]);
   const [token, setToken] = useState<string>();
-  const [statusText, setStatusText] = useState("正在尝试连接会员 API...");
+  const [statusText, setStatusText] = useState("正在读取我的信息...");
 
   useEffect(() => {
     let cancelled = false;
 
     async function loadMembership() {
       try {
-        const login = await mockLogin();
+        const accessToken = await getApiAccessToken();
+
+        if (!accessToken) {
+          setStatusText("登录后查看我的主页。");
+          return;
+        }
+
         const [membershipResponse, usageResponse, premiumResponse] = await Promise.all([
-          getMembership(login.token),
-          getUsage(login.token),
+          getMembership(accessToken),
+          getUsage(accessToken),
           getPremiumEntries(),
         ]);
 
         if (cancelled) return;
 
-        setToken(login.token);
+        setToken(accessToken);
         setMembership(membershipResponse);
         setUsage(usageResponse);
         setPremiumEntries(premiumResponse);
-        setStatusText("已连接会员与 Premium Mock API。");
+        setStatusText("我的信息已更新。");
       } catch {
         if (cancelled) return;
-        setStatusText("未检测到可用 API，当前使用前端 mock 会员状态。");
+        setStatusText("暂时无法读取最新信息。");
       }
     }
 
@@ -88,7 +94,7 @@ export function ProfileDashboard() {
 
   async function handleMockCheckout() {
     if (!token) {
-      setStatusText("mock 模式下不发起支付请求，真实支付会在后续版本接入。");
+      setStatusText("请先登录，再查看会员。");
       return;
     }
 
@@ -132,7 +138,7 @@ export function ProfileDashboard() {
             </p>
             <p className="mt-2">{statusText}</p>
             <Button className="mt-4" variant="secondary" onClick={handleMockCheckout}>
-              查看学期会员 mock
+              查看学期会员
             </Button>
           </AIInsightBox>
 
@@ -163,8 +169,8 @@ export function ProfileDashboard() {
           </div>
 
           <div className="rounded-[2rem] bg-campus-lime p-6">
-            <p className="text-sm font-black text-campus-grass">Premium Match</p>
-            <h2 className="mt-2 font-display text-4xl font-black">高价值专区先做展示和 mock</h2>
+            <p className="text-sm font-black text-campus-grass">学长学姐专区</p>
+            <h2 className="mt-2 font-display text-4xl font-black">经验咨询先看清楚</h2>
             <div className="mt-5 grid gap-3 md:grid-cols-2">
               {(premiumEntries.length ? premiumEntries : []).slice(0, 4).map((entry) => (
                 <article key={entry.id} className="rounded-[1.25rem] bg-campus-paper/80 p-4">
@@ -183,7 +189,7 @@ export function ProfileDashboard() {
               ))}
               {premiumEntries.length === 0 ? (
                 <p className="text-sm leading-7 text-campus-ink/70">
-                  暂无后端 Premium 数据。seed 后会展示学长学姐经验咨询卡片。
+                  暂无学长学姐卡片。稍后再来看看。
                 </p>
               ) : null}
             </div>

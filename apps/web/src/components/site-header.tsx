@@ -27,9 +27,14 @@ export function SiteHeader() {
             </Link>
           ))}
         </nav>
-        <Button asChild size="sm">
-          <Link href="/onboarding">开始匹配</Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Link href="/auth" className="hidden px-3 py-2 text-sm font-bold text-campus-ink/68 sm:block">
+            登录
+          </Link>
+          <Button asChild size="sm">
+            <Link href="/onboarding">开始匹配</Link>
+          </Button>
+        </div>
       </div>
     </header>
   );

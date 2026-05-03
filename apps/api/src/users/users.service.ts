@@ -10,6 +10,13 @@ type UpsertMockUserInput = {
   role: UserRole;
 };
 
+type UpsertAuthUserInput = {
+  id: string;
+  email?: string;
+  nickname: string;
+  role: UserRole;
+};
+
 @Injectable()
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
@@ -53,6 +60,46 @@ export class UsersService {
         subscriptions: true,
       },
     });
+
+    return this.toPublicUser(user);
+  }
+
+  async upsertAuthUser(input: UpsertAuthUserInput) {
+    const existingUser = await this.prisma.user.findFirst({
+      where: {
+        OR: [{ id: input.id }, ...(input.email ? [{ email: input.email }] : [])],
+      },
+    });
+
+    const user = existingUser
+      ? await this.prisma.user.update({
+          where: {
+            id: existingUser.id,
+          },
+          data: {
+            email: input.email,
+            nickname: input.nickname,
+            role: input.role,
+            lastActiveAt: new Date(),
+          },
+          include: {
+            profile: true,
+            subscriptions: true,
+          },
+        })
+      : await this.prisma.user.create({
+          data: {
+            id: input.id,
+            email: input.email,
+            nickname: input.nickname,
+            role: input.role,
+            lastActiveAt: new Date(),
+          },
+          include: {
+            profile: true,
+            subscriptions: true,
+          },
+        });
 
     return this.toPublicUser(user);
   }

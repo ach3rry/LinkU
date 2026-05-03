@@ -28,9 +28,9 @@ export const ZONES: Array<{
   {
     code: "premium",
     name: "学长学姐专区",
-    shortName: "Premium",
-    description: "保研考研经验、简历修改、项目修改、AI coding 陪跑等高价值资源。",
-    promise: "用 Premium Match 预留高价值咨询场景。",
+    shortName: "学长学姐",
+    description: "保研考研经验、简历修改、项目修改、项目陪跑等高价值资源。",
+    promise: "先把经验咨询的范围、时间和价格说清楚。",
   },
 ];
 

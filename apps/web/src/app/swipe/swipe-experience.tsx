@@ -10,8 +10,8 @@ import {
   createBlock,
   createReport,
   createSwipe,
+  getApiAccessToken,
   getRecommendations,
-  mockLogin,
   type ApiRecommendationItem,
 } from "../../lib/api";
 import { mockRecommendations, type MockRecommendation } from "../../lib/mock-data";
@@ -67,10 +67,10 @@ export function SwipeExperience() {
   const [matchId, setMatchId] = useState<string>();
   const [mode, setMode] = useState<DataMode>("loading");
   const [token, setToken] = useState<string>();
-  const [cards, setCards] = useState<MockRecommendation[]>(mockRecommendations);
-  const [statusText, setStatusText] = useState("正在尝试连接本地 API...");
+  const [cards, setCards] = useState<MockRecommendation[]>([]);
+  const [statusText, setStatusText] = useState("正在读取推荐...");
 
-  const current = cards[index % cards.length];
+  const current = cards.length ? cards[index % cards.length] : undefined;
   const progress = useMemo(() => index + 1, [index]);
 
   useEffect(() => {
@@ -78,26 +78,41 @@ export function SwipeExperience() {
 
     async function bootstrapApiMode() {
       try {
-        const login = await mockLogin();
-        const recommendations = await getRecommendations(login.token, "tutoring");
+        const accessToken = await getApiAccessToken();
+
+        if (!accessToken) {
+          if (cancelled) return;
+          setMode("mock");
+          setStatusText("登录后查看推荐。");
+          return;
+        }
+
+        const recommendations = await getRecommendations(accessToken, "tutoring");
         const apiCards = recommendations.items.map(mapRecommendation);
 
         if (cancelled) return;
 
         if (apiCards.length === 0) {
           setMode("mock");
-          setStatusText("API 已连接，但暂无可推荐卡片，当前使用 mock Demo。");
+          setStatusText("暂时没有新的推荐。");
           return;
         }
 
-        setToken(login.token);
+        setToken(accessToken);
         setCards(apiCards);
         setMode("api");
-        setStatusText("已连接后端推荐接口，左右滑会写入 API。");
+        setStatusText("推荐已准备好。");
       } catch {
         if (cancelled) return;
+        if (process.env.NODE_ENV !== "production") {
+          setCards(mockRecommendations);
+          setMode("mock");
+          setStatusText("本地体验已准备好。");
+          return;
+        }
+
         setMode("mock");
-        setStatusText("未检测到可用 API 或数据库，当前使用 mock Demo。");
+        setStatusText("暂时无法读取推荐，请稍后再试。");
       }
     }
 
@@ -109,6 +124,8 @@ export function SwipeExperience() {
   }, []);
 
   async function handleSwipe(direction: "left" | "right") {
+    if (!current) return;
+
     const swipedCard = current;
 
     if (mode === "api" && token) {
@@ -122,7 +139,7 @@ export function SwipeExperience() {
           setStatusText(response.hint);
         }
       } catch (error) {
-        setStatusText(error instanceof Error ? error.message : "滑卡失败，已保留当前 Demo 状态。");
+        setStatusText(error instanceof Error ? error.message : "滑卡没有完成，请稍后再试。");
       }
     }
 
@@ -135,7 +152,7 @@ export function SwipeExperience() {
 
   async function sendContactRequest(message: string) {
     if (!token || !matchId) {
-      setStatusText("mock 模式下只展示联系申请入口，不写入后端。");
+      setStatusText("联系申请需要先完成匹配。");
       return;
     }
 
@@ -146,7 +163,7 @@ export function SwipeExperience() {
 
   async function reportCurrentCard(card: MockRecommendation) {
     if (!token || mode !== "api") {
-      setStatusText("mock 模式下已展示举报入口，接入 API 后会写入举报记录。");
+      setStatusText("当前暂时不能提交举报。");
       return;
     }
 
@@ -161,7 +178,7 @@ export function SwipeExperience() {
 
   async function blockCurrentUser(card: MockRecommendation) {
     if (!token || mode !== "api" || !card.targetUserId) {
-      setStatusText("mock 模式下已展示拉黑入口，接入 API 后会写入拉黑记录。");
+      setStatusText("当前暂时不能拉黑该用户。");
       return;
     }
 
@@ -184,29 +201,40 @@ export function SwipeExperience() {
       </aside>
 
       <section className="flex flex-col items-center">
-        <SwipeCard
-          key={`${current.id}-${index}`}
-          card={current}
-          onSwipe={handleSwipe}
-          onReport={reportCurrentCard}
-          onBlock={blockCurrentUser}
-        />
-        <div className="mt-7 flex gap-4">
-          <Button variant="secondary" size="lg" onClick={() => handleSwipe("left")}>
-            左滑跳过
-          </Button>
-          <Button size="lg" onClick={() => handleSwipe("right")}>
-            右滑想联系
-          </Button>
-        </div>
+        {current ? (
+          <>
+            <SwipeCard
+              key={`${current.id}-${index}`}
+              card={current}
+              onSwipe={handleSwipe}
+              onReport={reportCurrentCard}
+              onBlock={blockCurrentUser}
+            />
+            <div className="mt-7 flex gap-4">
+              <Button variant="secondary" size="lg" onClick={() => handleSwipe("left")}>
+                左滑跳过
+              </Button>
+              <Button size="lg" onClick={() => handleSwipe("right")}>
+                右滑想联系
+              </Button>
+            </div>
+          </>
+        ) : (
+          <div className="grid min-h-[32rem] w-full place-items-center rounded-[2rem] bg-white/70 p-8 text-center">
+            <div>
+              <h2 className="font-display text-4xl font-black">还没有可看的卡片</h2>
+              <p className="mt-3 text-sm leading-7 text-campus-ink/62">{statusText}</p>
+            </div>
+          </div>
+        )}
       </section>
 
       <aside className="rounded-[2rem] bg-campus-ink p-6 text-campus-paper">
         <p className="text-sm font-black text-campus-lime">推荐规则</p>
         <div className="mt-5 space-y-4 text-sm leading-7 text-campus-paper/76">
-          <p>同专区、未滑过、未拉黑、审核通过，是推荐前置过滤。</p>
-          <p>匹配分先用规则评分：标签、学校距离、时间、预算、活跃度、认证和偏好。</p>
-          <p>AI 只解释后端命中的事实，不直接决定安全逻辑。</p>
+          <p>同专区、未滑过、未拉黑、审核通过，是推荐前置条件。</p>
+          <p>时间、预算、地点、学校和标签越清楚，越容易遇到合适的人。</p>
+          <p>不合适就跳过，想了解再右滑。</p>
         </div>
       </aside>
 

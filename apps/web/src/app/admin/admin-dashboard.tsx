@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import { ShieldAlert } from "lucide-react";
 import {
+  getApiAccessToken,
   getAdminPendingCards,
   getAdminReports,
-  mockLogin,
   type AdminCardItem,
   type AdminReportItem,
 } from "../../lib/api";
@@ -21,8 +21,8 @@ const mockPendingCards: AdminCardItem[] = [
   },
   {
     id: "card-pending-002",
-    title: "AI coding 陪跑咨询",
-    subtitle: "Premium mock，暂不接真实支付",
+    title: "项目陪跑咨询",
+    subtitle: "学长学姐专区，等待审核",
     zone: { name: "学长学姐专区" },
     status: "PENDING",
   },
@@ -44,27 +44,33 @@ function mapMockReports(): AdminReportItem[] {
 export function AdminDashboard() {
   const [reports, setReports] = useState<AdminReportItem[]>(mapMockReports());
   const [cards, setCards] = useState<AdminCardItem[]>(mockPendingCards);
-  const [statusText, setStatusText] = useState("正在尝试连接管理后台 API...");
+  const [statusText, setStatusText] = useState("正在读取审核数据...");
 
   useEffect(() => {
     let cancelled = false;
 
     async function loadAdminData() {
       try {
-        const login = await mockLogin("admin");
+        const accessToken = await getApiAccessToken("admin");
+
+        if (!accessToken) {
+          setStatusText("需要管理员登录后查看。");
+          return;
+        }
+
         const [apiReports, apiCards] = await Promise.all([
-          getAdminReports(login.token),
-          getAdminPendingCards(login.token),
+          getAdminReports(accessToken),
+          getAdminPendingCards(accessToken),
         ]);
 
         if (cancelled) return;
 
         setReports(apiReports);
         setCards(apiCards);
-        setStatusText("已连接真实 Admin API。");
+        setStatusText("审核数据已更新。");
       } catch {
         if (cancelled) return;
-        setStatusText("未检测到可用 Admin API，当前使用 mock 审核台。");
+        setStatusText("暂时无法读取审核数据。");
       }
     }
 
@@ -80,7 +86,7 @@ export function AdminDashboard() {
       <section className="mb-8 flex flex-col justify-between gap-5 md:flex-row md:items-end">
         <div>
           <p className="text-sm font-black uppercase tracking-[0.24em] text-campus-grass">
-            Admin Review
+            审核台
           </p>
           <h1 className="mt-4 font-display text-5xl font-black leading-tight md:text-6xl">
             管理后台先看风险，不追求复杂。

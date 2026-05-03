@@ -1,3 +1,5 @@
+import { getSupabaseBrowserClient } from "./supabase";
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000";
 
 type ApiOptions = RequestInit & {
@@ -53,6 +55,24 @@ export function mockLogin(role: "user" | "admin" = "user") {
       role,
     }),
   });
+}
+
+export async function getApiAccessToken(role: "user" | "admin" = "user") {
+  const supabase = getSupabaseBrowserClient();
+
+  if (supabase) {
+    const { data } = await supabase.auth.getSession();
+    if (data.session?.access_token) {
+      return data.session.access_token;
+    }
+  }
+
+  if (process.env.NODE_ENV !== "production") {
+    const login = await mockLogin(role);
+    return login.token;
+  }
+
+  return undefined;
 }
 
 export type ParsedDemandResponse = {
