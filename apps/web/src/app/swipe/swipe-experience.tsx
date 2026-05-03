@@ -112,7 +112,7 @@ export function SwipeExperience() {
   const [cards, setCards] = useState<MockRecommendation[]>([]);
   const [statusText, setStatusText] = useState("正在读取推荐...");
   const [activeZone, setActiveZone] = useState<string>("tutoring");
-  const { client: supabaseClient, session: supabaseSession } = useSupabaseSession();
+  const { client: supabaseClient, isReady, session: supabaseSession } = useSupabaseSession();
 
   const current = cards.length ? cards[index % cards.length] : undefined;
   const progress = useMemo(() => index + 1, [index]);
@@ -121,8 +121,18 @@ export function SwipeExperience() {
     let cancelled = false;
 
     async function bootstrap() {
+      // Wait for session to be ready
+      if (!isReady) return;
+
+      // Not logged in — fall through to API/mock
+      if (!supabaseSession) {
+        setMode("mock");
+        setStatusText("登录后查看推荐。");
+        return;
+      }
+
       // Try Supabase direct mode first
-      if (isSupabaseDirectMode() && supabaseClient && supabaseSession) {
+      if (isSupabaseDirectMode() && supabaseClient) {
         try {
           const recs = await getSupabaseRecommendations(
             supabaseClient,
@@ -143,8 +153,9 @@ export function SwipeExperience() {
           setMode("supabase");
           setStatusText("推荐已准备好。");
           return;
-        } catch {
+        } catch (err) {
           if (cancelled) return;
+          console.error("[Swipe] Supabase error:", err);
           // Fall through to API mode
         }
       }

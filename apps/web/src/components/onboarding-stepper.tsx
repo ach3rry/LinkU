@@ -160,7 +160,7 @@ export function OnboardingStepper({ initialZone }: { initialZone?: ZoneCode }) {
   const [generatedDraft, setGeneratedDraft] = useState<GeneratedCardResponse | null>(null);
   const [parsedDemand, setParsedDemand] = useState<ParsedDemandResponse | null>(null);
   const [savedCardId, setSavedCardId] = useState<string | null>(null);
-  const [statusText, setStatusText] = useState("写一句需求，LinkU 会整理成一张待审核卡片。");
+  const [statusText, setStatusText] = useState("写一句需求，LinkU 会帮你整理成一张卡片。");
   const [errorText, setErrorText] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isStartingLocal, setIsStartingLocal] = useState(false);
@@ -228,7 +228,7 @@ export function OnboardingStepper({ initialZone }: { initialZone?: ZoneCode }) {
         });
 
         setSavedCardId(card.id);
-        setStatusText("卡片已发布，等待审核。");
+        setStatusText("卡片已发布！可以去滑卡页查看推荐了。");
         return;
       }
 
@@ -251,7 +251,7 @@ export function OnboardingStepper({ initialZone }: { initialZone?: ZoneCode }) {
       });
 
       setSavedCardId(card.id);
-      setStatusText("卡片已保存，等待审核。");
+      setStatusText("卡片已保存！可以去滑卡页查看推荐了。");
     } catch (error) {
       setErrorText(normalizeError(error));
       setStatusText("这次没有完成，请稍后再试。");
@@ -322,7 +322,7 @@ export function OnboardingStepper({ initialZone }: { initialZone?: ZoneCode }) {
                   setParsedDemand(null);
                   setSavedCardId(null);
                   setErrorText(null);
-                  setStatusText("写一句需求，LinkU 会整理成一张待审核卡片。");
+                  setStatusText("写一句需求，LinkU 会帮你整理成一张卡片。");
                 }}
                 className="mt-3 min-h-36 w-full resize-none rounded-[1.5rem] border border-campus-ink/10 bg-white/80 p-4 leading-7 outline-none transition placeholder:text-campus-ink/38 focus:border-campus-grass"
               />
@@ -368,7 +368,7 @@ export function OnboardingStepper({ initialZone }: { initialZone?: ZoneCode }) {
           <div className="grid gap-2 text-sm leading-6">
             <p>{statusText}</p>
             {savedCardId ? (
-              <p className="font-black text-campus-grass">卡片已进入审核队列。</p>
+              <p className="font-black text-campus-grass">卡片已发布，立即生效！</p>
             ) : null}
             {errorText ? <p className="font-black text-red-600">{errorText}</p> : null}
           </div>

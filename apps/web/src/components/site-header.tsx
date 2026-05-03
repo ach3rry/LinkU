@@ -6,7 +6,6 @@ const navItems = [
   { href: "/onboarding", label: "建卡" },
   { href: "/swipe", label: "滑卡" },
   { href: "/profile", label: "我的" },
-  { href: "/admin", label: "审核台" },
 ];
 
 export function SiteHeader() {

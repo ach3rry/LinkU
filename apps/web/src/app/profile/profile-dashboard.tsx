@@ -60,7 +60,7 @@ function readTags(value: unknown) {
 }
 
 export function ProfileDashboard() {
-  const { client: supabaseClient, session, user } = useSupabaseSession();
+  const { client: supabaseClient, isReady, session, user } = useSupabaseSession();
   const [myCards, setMyCards] = useState<UserCard[]>([]);
   const [matchCount, setMatchCount] = useState(0);
   const [membership, setMembership] = useState(fallbackMembership);
@@ -77,8 +77,17 @@ export function ProfileDashboard() {
     let cancelled = false;
 
     async function load() {
+      // Wait for session to be ready
+      if (!isReady) return;
+
+      // Not logged in
+      if (!session) {
+        setStatusText("登录后查看我的主页。");
+        return;
+      }
+
       // Supabase direct mode
-      if (isSupabaseDirectMode() && supabaseClient && session) {
+      if (isSupabaseDirectMode() && supabaseClient) {
         try {
           const [cardsResult, matchesResult] = await Promise.all([
             supabaseClient
@@ -89,20 +98,31 @@ export function ProfileDashboard() {
             supabaseClient
               .from("Match")
               .select("id", { count: "exact", head: true })
-              .or(`userAId.eq.${session.user.id},userBId.eq.${session.user.id}`),
+              .or(`userAId.eq.${session.user.id},userBId.eq.${session.user.id}`)
+              .limit(1),
           ]);
 
           if (cancelled) return;
 
-          if (cardsResult.data) {
+          if (cardsResult.error) {
+            console.error("[Profile] Card query error:", cardsResult.error);
+            setStatusText(`读取卡片失败: ${cardsResult.error.message}`);
+          } else if (cardsResult.data) {
             setMyCards(cardsResult.data as unknown as UserCard[]);
           }
-          if (matchesResult.count !== null && matchesResult.count !== undefined) {
+
+          if (matchesResult.error) {
+            console.error("[Profile] Match query error:", matchesResult.error);
+          } else if (matchesResult.count !== null && matchesResult.count !== undefined) {
             setMatchCount(matchesResult.count);
           }
-          setStatusText("我的信息已更新。");
-        } catch {
+
+          if (!cardsResult.error) {
+            setStatusText("我的信息已更新。");
+          }
+        } catch (err) {
           if (cancelled) return;
+          console.error("[Profile] Load error:", err);
           setStatusText("暂时无法读取最新信息。");
         }
         return;
@@ -141,7 +161,7 @@ export function ProfileDashboard() {
     return () => {
       cancelled = true;
     };
-  }, [supabaseClient, session]);
+  }, [supabaseClient, isReady, session]);
 
   async function handleMockCheckout() {
     if (!token) {

@@ -116,6 +116,7 @@ export async function upsertCurrentSupabaseUser(client: SupabaseClient, session:
   );
 
   if (error) {
+    console.error("[Supabase] upsertCurrentSupabaseUser error:", error);
     throw new Error(error.message);
   }
 }
@@ -264,7 +265,12 @@ export async function getSupabaseRecommendations(
 
   const { data, error } = await query;
 
-  if (error || !data) {
+  if (error) {
+    console.error("[Supabase] getSupabaseRecommendations error:", error);
+    return [];
+  }
+
+  if (!data || data.length === 0) {
     return [];
   }
 
@@ -311,6 +317,7 @@ export async function createSupabaseSwipe(
     .single();
 
   if (swipeError || !swipe) {
+    console.error("[Supabase] createSupabaseSwipe error:", swipeError);
     throw new Error(swipeError?.message ?? "滑卡失败。");
   }
 

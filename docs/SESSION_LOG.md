@@ -7,7 +7,7 @@
 - 连接串：`aws-1-ap-southeast-1.pooler.supabase.com:5432`（Session Pooler，IPv4）
 - 三大专区数据已初始化（TUTORING / BUDDY / PREMIUM）
 - 所有表的 id、createdAt、updatedAt 已加数据库层 DEFAULT（Prisma 的 @default 只在 Prisma Client 生效，Supabase 直连需要数据库 DEFAULT）
-- RLS 策略已配置：User / Zone / Card / Swipe / Match / ContactRequest / Block / Report
+- RLS 策略已配置：User / Zone / Card（Profile / Match / Swipe / Block 待补齐）
 
 ### Netlify 部署
 - 线上地址：https://linkuni.netlify.app/
@@ -27,21 +27,41 @@
 - Profile 页 Supabase 直连
 - 滑卡页三种数据模式（supabase / api / mock）+ 专区切换
 
+### 本次会话修复（未部署，待 push + 手动 SQL）
+
+#### 代码修复
+1. **隐藏审核台入口**：`site-header.tsx` 从 navItems 移除 `/admin`
+2. **修正建卡提示文字**：`onboarding-stepper.tsx` 所有"等待审核"→"卡片已发布！"
+3. **Profile 页卡片不显示**：
+   - `profile-dashboard.tsx`：加 `isReady` 检查，不再 session 为 null 时就跳到错误分支
+   - Supabase 查询的 `error` 对象不再静默忽略，加了 `console.error` 和明确的错误提示
+   - Match 查询加了 `.limit(1)` 防止无数据时出错
+4. **滑卡页 session 时序**：`swipe-experience.tsx` 同样加 `isReady` 检查和 `console.error`
+5. **supabase.ts 关键查询加日志**：`upsertCurrentSupabaseUser`、`getSupabaseRecommendations`、`createSupabaseSwipe`
+6. **文档更新**：`SUPABASE_MVP_SETUP.md` 补充预设数据 SQL 和 RLS 更新说明
+
+#### 待手动完成（Supabase Dashboard → SQL Editor）
+1. **确认用户邮箱**：`UPDATE auth.users SET email_confirmed_at = now() WHERE email_confirmed_at IS NULL;`
+2. **补齐 RLS 策略**：Profile、Match、Swipe、Block 四张表（完整 SQL 见 TASKS.md）
+3. **插入预设演示数据**：4 个演示用户 + 4 张卡片（完整 SQL 见 SUPABASE_MVP_SETUP.md 第 4 节）
+
 ### 已知问题
-- Supabase Email 确认默认开启，用户注册后需确认邮箱才能登录
-- 建议在 Supabase Dashboard → Authentication → Providers → Email 关掉 Confirm email（MVP 阶段）
+- Supabase Email 确认默认开启，Dashboard 关不掉 Confirm email 开关，需用 SQL 手动确认用户
+- 之前只有 User/Zone/Card 三张表有 RLS 策略，Profile/Match/Swipe/Block 缺失导致推荐页 join 失败和匹配计数查询静默失败
 - `linkutest2026@gmail.com` 和 `1595486059h@gmail.com` 是测试账号
 
 ## 下一步开发任务（按优先级）
 
 ### P0：验证 MVP 闭环
+- 先完成上面的 3 个手动 SQL
+- Push 代码触发 Netlify 重新部署
 - 用两个真实账号走通：注册 → 建卡 → 滑卡 → 匹配 → 联系申请
 - 检查移动端适配
 
 ### P1：体验优化
 - 空状态/错误状态/加载状态补齐（建卡页、滑卡页、Profile 页）
 - 用户资料编辑页（学校、城市、年级、专业）
-- 关掉 Supabase 邮件确认（Dashboard 操作）
+- 滑卡页空状态引导用户去建卡
 
 ### P2：去 mock
 - Admin 页面 Supabase 直连
