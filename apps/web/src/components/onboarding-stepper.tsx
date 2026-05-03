@@ -7,7 +7,11 @@ import { SafetyNotice } from "./safety-notice";
 import { TagPill } from "./tag-pill";
 import { Button } from "./ui/button";
 
-const defaultDemand = "想找一个周末能线下教高数的学姐，预算 100/h 左右。";
+const demandPlaceholders: Record<ZoneCode, string> = {
+  tutoring: "例如：想找一个周末能线下教高数的学姐，预算 100/h 左右。",
+  buddy: "例如：想找一个工作日晚上一起自习和吃晚饭的同校搭子，边界清楚一点。",
+  premium: "例如：想约一位做过 AI 后端项目的学长，帮我改简历和梳理面试表达。",
+};
 
 const previewCopy: Record<
   ZoneCode,
@@ -86,7 +90,7 @@ function buildPreview(text: string, zone: ZoneCode) {
 
 export function OnboardingStepper({ initialZone }: { initialZone?: ZoneCode }) {
   const [selectedZone, setSelectedZone] = useState<ZoneCode>(initialZone ?? "tutoring");
-  const [demand, setDemand] = useState(defaultDemand);
+  const [demand, setDemand] = useState("");
   const preview = useMemo(() => buildPreview(demand, selectedZone), [demand, selectedZone]);
   const activeZone = ZONES.find((zone) => zone.code === selectedZone);
 
@@ -116,8 +120,9 @@ export function OnboardingStepper({ initialZone }: { initialZone?: ZoneCode }) {
           <span className="text-sm font-black text-campus-ink/60">一句话需求</span>
           <textarea
             value={demand}
+            placeholder={demandPlaceholders[selectedZone]}
             onChange={(event) => setDemand(event.target.value)}
-            className="mt-3 min-h-36 w-full resize-none rounded-[1.5rem] border border-campus-ink/10 bg-white/80 p-4 leading-7 outline-none transition focus:border-campus-grass"
+            className="mt-3 min-h-36 w-full resize-none rounded-[1.5rem] border border-campus-ink/10 bg-white/80 p-4 leading-7 outline-none transition placeholder:text-campus-ink/38 focus:border-campus-grass"
           />
         </label>
 
