@@ -167,6 +167,21 @@ using (
   )
 );
 
+drop policy if exists "profile_insert_own" on "Profile";
+create policy "profile_insert_own"
+on "Profile"
+for insert
+to authenticated
+with check ("userId" = auth.uid()::text);
+
+drop policy if exists "profile_update_own" on "Profile";
+create policy "profile_update_own"
+on "Profile"
+for update
+to authenticated
+using ("userId" = auth.uid()::text)
+with check ("userId" = auth.uid()::text);
+
 drop policy if exists "zone_select_enabled" on "Zone";
 create policy "zone_select_enabled"
 on "Zone"
@@ -187,6 +202,97 @@ on "Card"
 for select
 to authenticated
 using ("userId" = auth.uid()::text or "status" = 'ACTIVE');
+
+-- Swipe：允许用户创建和查看自己的滑卡记录
+alter table "Swipe" enable row level security;
+
+drop policy if exists "swipe_select_own" on "Swipe";
+create policy "swipe_select_own"
+on "Swipe"
+for select
+to authenticated
+using ("swiperId" = auth.uid()::text);
+
+drop policy if exists "swipe_insert_own" on "Swipe";
+create policy "swipe_insert_own"
+on "Swipe"
+for insert
+to authenticated
+with check ("swiperId" = auth.uid()::text);
+
+-- Match：允许用户创建和查看自己的匹配
+alter table "Match" enable row level security;
+
+drop policy if exists "match_select_own" on "Match";
+create policy "match_select_own"
+on "Match"
+for select
+to authenticated
+using ("userAId" = auth.uid()::text or "userBId" = auth.uid()::text);
+
+drop policy if exists "match_insert_own" on "Match";
+create policy "match_insert_own"
+on "Match"
+for insert
+to authenticated
+with check ("userAId" = auth.uid()::text or "userBId" = auth.uid()::text);
+
+-- ContactRequest：允许匹配双方发起和查看联系申请
+alter table "ContactRequest" enable row level security;
+
+drop policy if exists "contact_request_select_own_match" on "ContactRequest";
+create policy "contact_request_select_own_match"
+on "ContactRequest"
+for select
+to authenticated
+using (
+  exists (
+    select 1 from "Match"
+    where "Match"."id" = "ContactRequest"."matchId"
+    and ("Match"."userAId" = auth.uid()::text or "Match"."userBId" = auth.uid()::text)
+  )
+);
+
+drop policy if exists "contact_request_insert_own_match" on "ContactRequest";
+create policy "contact_request_insert_own_match"
+on "ContactRequest"
+for insert
+to authenticated
+with check (
+  "senderId" = auth.uid()::text
+  and exists (
+    select 1 from "Match"
+    where "Match"."id" = "ContactRequest"."matchId"
+    and ("Match"."userAId" = auth.uid()::text or "Match"."userBId" = auth.uid()::text)
+  )
+);
+
+-- Block：允许用户创建和查看自己的拉黑记录
+alter table "Block" enable row level security;
+
+drop policy if exists "block_select_own" on "Block";
+create policy "block_select_own"
+on "Block"
+for select
+to authenticated
+using ("blockerId" = auth.uid()::text);
+
+drop policy if exists "block_insert_own" on "Block";
+create policy "block_insert_own"
+on "Block"
+for insert
+to authenticated
+with check ("blockerId" = auth.uid()::text);
+
+-- Report：允许用户提交自己的举报
+alter table "Report" enable row level security;
+
+drop policy if exists "report_insert_own" on "Report";
+create policy "report_insert_own"
+on "Report"
+for insert
+to authenticated
+with check ("reporterId" = auth.uid()::text);
 ```
 
 ## 6. 当前能力边界

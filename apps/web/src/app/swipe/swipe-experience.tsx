@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { MatchSuccessModal } from "../../components/match-success-modal";
 import { SafetyNotice } from "../../components/safety-notice";
@@ -374,6 +375,9 @@ export function SwipeExperience() {
             <div>
               <h2 className="font-display text-4xl font-black">还没有可看的卡片</h2>
               <p className="mt-3 text-sm leading-7 text-campus-ink/62">{statusText}</p>
+              <Button asChild className="mt-6">
+                <Link href={`/onboarding?zone=${activeZone}`}>发布我的卡片</Link>
+              </Button>
             </div>
           </div>
         )}

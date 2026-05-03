@@ -47,26 +47,85 @@
      OR EXISTS (SELECT 1 FROM "Card" WHERE "Card"."userId" = "Profile"."userId" AND "Card"."status" = 'ACTIVE')
    );
 
-   -- Match：允许用户查看自己的匹配
+   -- Profile：允许用户新增/更新自己的资料
+   DROP POLICY IF EXISTS "profile_insert_own" ON "Profile";
+   CREATE POLICY "profile_insert_own"
+   ON "Profile" FOR INSERT TO authenticated
+   WITH CHECK ("userId" = auth.uid()::text);
+
+   DROP POLICY IF EXISTS "profile_update_own" ON "Profile";
+   CREATE POLICY "profile_update_own"
+   ON "Profile" FOR UPDATE TO authenticated
+   USING ("userId" = auth.uid()::text)
+   WITH CHECK ("userId" = auth.uid()::text);
+
+   -- Match：允许用户创建和查看自己的匹配
    ALTER TABLE "Match" ENABLE ROW LEVEL SECURITY;
    DROP POLICY IF EXISTS "match_select_own" ON "Match";
    CREATE POLICY "match_select_own"
    ON "Match" FOR SELECT TO authenticated
    USING ("userAId" = auth.uid()::text OR "userBId" = auth.uid()::text);
 
-   -- Swipe：允许用户查看自己的滑卡记录
+   DROP POLICY IF EXISTS "match_insert_own" ON "Match";
+   CREATE POLICY "match_insert_own"
+   ON "Match" FOR INSERT TO authenticated
+   WITH CHECK ("userAId" = auth.uid()::text OR "userBId" = auth.uid()::text);
+
+   -- Swipe：允许用户创建和查看自己的滑卡记录
    ALTER TABLE "Swipe" ENABLE ROW LEVEL SECURITY;
    DROP POLICY IF EXISTS "swipe_select_own" ON "Swipe";
    CREATE POLICY "swipe_select_own"
    ON "Swipe" FOR SELECT TO authenticated
    USING ("swiperId" = auth.uid()::text);
 
-   -- Block：允许用户查看自己的拉黑记录
+   DROP POLICY IF EXISTS "swipe_insert_own" ON "Swipe";
+   CREATE POLICY "swipe_insert_own"
+   ON "Swipe" FOR INSERT TO authenticated
+   WITH CHECK ("swiperId" = auth.uid()::text);
+
+   -- ContactRequest：允许匹配双方发起和查看联系申请
+   ALTER TABLE "ContactRequest" ENABLE ROW LEVEL SECURITY;
+   DROP POLICY IF EXISTS "contact_request_select_own_match" ON "ContactRequest";
+   CREATE POLICY "contact_request_select_own_match"
+   ON "ContactRequest" FOR SELECT TO authenticated
+   USING (
+     EXISTS (
+       SELECT 1 FROM "Match"
+       WHERE "Match"."id" = "ContactRequest"."matchId"
+       AND ("Match"."userAId" = auth.uid()::text OR "Match"."userBId" = auth.uid()::text)
+     )
+   );
+
+   DROP POLICY IF EXISTS "contact_request_insert_own_match" ON "ContactRequest";
+   CREATE POLICY "contact_request_insert_own_match"
+   ON "ContactRequest" FOR INSERT TO authenticated
+   WITH CHECK (
+     "senderId" = auth.uid()::text
+     AND EXISTS (
+       SELECT 1 FROM "Match"
+       WHERE "Match"."id" = "ContactRequest"."matchId"
+       AND ("Match"."userAId" = auth.uid()::text OR "Match"."userBId" = auth.uid()::text)
+     )
+   );
+
+   -- Block：允许用户创建和查看自己的拉黑记录
    ALTER TABLE "Block" ENABLE ROW LEVEL SECURITY;
    DROP POLICY IF EXISTS "block_select_own" ON "Block";
    CREATE POLICY "block_select_own"
    ON "Block" FOR SELECT TO authenticated
    USING ("blockerId" = auth.uid()::text);
+
+   DROP POLICY IF EXISTS "block_insert_own" ON "Block";
+   CREATE POLICY "block_insert_own"
+   ON "Block" FOR INSERT TO authenticated
+   WITH CHECK ("blockerId" = auth.uid()::text);
+
+   -- Report：允许用户提交自己的举报
+   ALTER TABLE "Report" ENABLE ROW LEVEL SECURITY;
+   DROP POLICY IF EXISTS "report_insert_own" ON "Report";
+   CREATE POLICY "report_insert_own"
+   ON "Report" FOR INSERT TO authenticated
+   WITH CHECK ("reporterId" = auth.uid()::text);
    ```
 
 3. **插入预设演示数据**（见 `docs/SUPABASE_MVP_SETUP.md` 第 4 节完整 SQL）：4 个演示用户 + 4 张预设卡片（家教/搭子/学长学姐各至少一张）
@@ -78,7 +137,7 @@
 3. **环境变量**：Netlify 的 NEXT_PUBLIC_SUPABASE_ANON_KEY 粘贴时不能有换行或空格，否则 JWT 截断导致 401。
 4. **认证代理**：新增 `/api/auth/[...path]` 服务端代理，浏览器直连 Supabase 失败时自动回退。
 5. **Supabase 邮件确认**：Dashboard 关不掉 Confirm email，用 SQL 手动确认用户作为替代方案。
-6. **RLS 已知缺陷**：之前只有 User/Zone/Card 三张表有 RLS 策略，Profile/Match/Swipe/Block 缺失，导致 Profile 页 join 查询和匹配计数查询静默失败。需手动执行上面的 SQL 补齐。
+6. **RLS 已知缺陷**：之前只有 User/Zone/Card 三张表有 RLS 策略，Profile/Match/Swipe/Block/ContactRequest/Report 写读策略缺失，导致 Profile 页 join 查询、滑卡、联系申请和举报链路可能失败。需手动执行上面的 SQL 补齐。
 7. **详细会话记录**：见 docs/SESSION_LOG.md。
 
 ---
@@ -197,8 +256,10 @@
 - [x] 滑卡页 session 时序 bug 修复
 - [x] 导航栏隐藏审核台入口
 - [x] 建卡提示文字修正（免审核）
+- [x] 滑卡空状态引导用户建卡
+- [x] Supabase RLS 文档补齐滑卡、匹配、联系申请、举报、拉黑写入策略
 - [ ] Admin 页面 Supabase 直连
-- [ ] 我的资料编辑页（学校、城市、年级、专业）
+- [x] 我的资料编辑页（学校、城市、年级、专业、简介）
 - [ ] 会员状态从占位表切换为真实权益表
 - [ ] 学长学姐专区 MVP 规则定稿
 - [ ] 支付保持禁用或接入真实支付沙箱

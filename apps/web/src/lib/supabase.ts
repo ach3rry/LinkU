@@ -206,6 +206,85 @@ export type SupabaseRecommendation = {
   };
 };
 
+export type SupabaseProfile = {
+  school: string;
+  city: string;
+  grade?: string | null;
+  major?: string | null;
+  bio?: string | null;
+};
+
+export type SupabaseProfileInput = {
+  school: string;
+  city: string;
+  grade?: string;
+  major?: string;
+  bio?: string;
+};
+
+export async function getCurrentSupabaseProfile(client: SupabaseClient, session: Session) {
+  await upsertCurrentSupabaseUser(client, session);
+
+  const { data, error } = await client
+    .from("Profile")
+    .select("school, city, grade, major, bio")
+    .eq("userId", session.user.id)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[Supabase] getCurrentSupabaseProfile error:", error);
+    throw new Error(error.message);
+  }
+
+  return data as SupabaseProfile | null;
+}
+
+export async function upsertSupabaseProfile(
+  client: SupabaseClient,
+  session: Session,
+  input: SupabaseProfileInput,
+) {
+  await upsertCurrentSupabaseUser(client, session);
+
+  const profile = {
+    userId: session.user.id,
+    school: input.school.trim(),
+    city: input.city.trim(),
+    grade: input.grade?.trim() || null,
+    major: input.major?.trim() || null,
+    bio: input.bio?.trim() || null,
+    relationshipBoundary: "STUDY_ONLY",
+    safetyPreference: {},
+    updatedAt: new Date().toISOString(),
+  };
+
+  const { data, error } = await client
+    .from("Profile")
+    .upsert(profile, { onConflict: "userId" })
+    .select("school, city, grade, major, bio")
+    .single();
+
+  if (error || !data) {
+    console.error("[Supabase] upsertSupabaseProfile error:", error);
+    throw new Error(error?.message ?? "资料没有保存成功，请稍后再试。");
+  }
+
+  const { error: authError } = await client.auth.updateUser({
+    data: {
+      school: data.school,
+      city: data.city,
+      grade: data.grade,
+      major: data.major,
+    },
+  });
+
+  if (authError) {
+    console.error("[Supabase] updateUser metadata error:", authError);
+  }
+
+  return data as SupabaseProfile;
+}
+
 export async function getSupabaseRecommendations(
   client: SupabaseClient,
   session: Session,
