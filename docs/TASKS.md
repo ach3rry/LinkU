@@ -1,6 +1,6 @@
 # LinkU MVP 任务清单
 
-## 当前进度（2026-05-03 更新）
+## 当前进度（2026-05-04 更新）
 
 ### 已完成
 
@@ -9,13 +9,13 @@
 - **阶段 15（部分）**：Swipe/Profile Supabase 直连、建卡直接 ACTIVE、Netlify 部署
 - **阶段 16（部分）**：Netlify + Supabase 直连架构已上线 https://linkuni.netlify.app/
 
-### 本次会话修复的代码问题（未部署，待 push）
+### 最近已部署的代码修复
 
 1. **隐藏审核台入口**：导航栏移除 `/admin` 链接（MVP 免审核，不需要暴露）
 2. **修正建卡提示文字**：所有"等待审核"改为"卡片已发布！"
 3. **Profile 页面卡片不显示**：修复 session 时序问题（加 `isReady` 检查）、Supabase 错误不再静默吞掉、加了 console.error 日志
 4. **滑卡页 session 时序**：同样加了 `isReady` 检查和错误日志
-5. **文档更新**：SUPABASE_MVP_SETUP.md 补充了预设数据 SQL、RLS 策略更新说明
+5. **文档更新**：SUPABASE_MVP_SETUP.md 补充了预设数据 SQL、RLS 策略更新说明，并拆出 `supabase/` 目录下的可执行 SQL 文件
 
 ### 待在 Supabase Dashboard 手动完成（代码改不了，必须手动）
 
@@ -256,10 +256,9 @@
 - [x] 滑卡页 session 时序 bug 修复
 - [x] 导航栏隐藏审核台入口
 - [x] 建卡提示文字修正（免审核）
-- [x] 滑卡空状态引导用户建卡
 - [x] Supabase RLS 文档补齐滑卡、匹配、联系申请、举报、拉黑写入策略
 - [ ] Admin 页面 Supabase 直连
-- [x] 我的资料编辑页（学校、城市、年级、专业、简介）
+- [ ] 我的资料编辑页（学校、城市、年级、专业、简介）
 - [ ] 会员状态从占位表切换为真实权益表
 - [ ] 学长学姐专区 MVP 规则定稿
 - [ ] 支付保持禁用或接入真实支付沙箱
@@ -310,7 +309,7 @@ MVP 阶段前端直接通过 Supabase JS Client 操作数据库，不经过 Nest
 - `apps/web/src/app/profile/profile-dashboard.tsx` — Profile 直连
 - `apps/web/src/components/onboarding-stepper.tsx` — 建卡直连
 
-RLS 策略覆盖的表：User, Zone, Card（已配置）；Profile, Match, Swipe, Block（待补齐，见上方 SQL）。
+RLS 策略覆盖的表：User, Zone, Card（已配置）；Profile, Match, Swipe, Block, ContactRequest, Report（待补齐，见上方 SQL 或 `supabase/mvp_rls.sql`）。
 
 数据模式由 `NEXT_PUBLIC_LINKU_DATA_MODE` 控制：
 - `supabase`：直连 Supabase（线上 Netlify）
