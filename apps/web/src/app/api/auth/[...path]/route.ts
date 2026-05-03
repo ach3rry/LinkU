@@ -9,7 +9,7 @@ export async function POST(
 ) {
   const { path } = await params;
   const suffix = path.join("/");
-  const targetUrl = `${SUPABASE_URL}/auth/v1/${suffix}`;
+  const targetUrl = `${SUPABASE_URL}/auth/v1/${suffix}${request.nextUrl.search}`;
 
   const body = await request.json();
 

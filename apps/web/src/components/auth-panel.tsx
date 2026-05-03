@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "./ui/button";
 import { getSupabaseBrowserClient, isSupabaseConfigured } from "../lib/supabase";
 
@@ -29,11 +29,31 @@ export function AuthPanel({
   onSignedIn,
 }: AuthPanelProps) {
   const client = getSupabaseBrowserClient();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [mode, setMode] = useState<"signin" | "signup" | "reset" | "update">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [statusText, setStatusText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!client) return;
+
+    if (window.location.hash.includes("type=recovery") || window.location.search.includes("type=recovery")) {
+      setMode("update");
+      setStatusText("请设置一个新密码。");
+    }
+
+    const { data } = client.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") {
+        setMode("update");
+        setStatusText("请设置一个新密码。");
+      }
+    });
+
+    return () => {
+      data.subscription.unsubscribe();
+    };
+  }, [client]);
 
   async function handleSubmit() {
     if (!isSupabaseConfigured()) {
@@ -41,7 +61,41 @@ export function AuthPanel({
       return;
     }
 
-    if (!email.trim() || password.length < 6) {
+    if (mode === "update") {
+      if (!client) {
+        setStatusText("请从邮件里的链接重新打开这个页面。");
+        return;
+      }
+
+      if (password.length < 6) {
+        setStatusText("新密码至少 6 位。");
+        return;
+      }
+
+      setIsSubmitting(true);
+      setStatusText("");
+
+      const result = await client.auth.updateUser({ password });
+      setIsSubmitting(false);
+
+      if (result.error) {
+        setStatusText(result.error.message);
+        return;
+      }
+
+      setStatusText("密码已更新，可以继续使用 LinkU。");
+      setMode("signin");
+      setPassword("");
+      onSignedIn?.();
+      return;
+    }
+
+    if (!email.trim()) {
+      setStatusText("请输入邮箱。");
+      return;
+    }
+
+    if (mode !== "reset" && password.length < 6) {
       setStatusText("请输入邮箱，并使用至少 6 位密码。");
       return;
     }
@@ -53,6 +107,50 @@ export function AuthPanel({
       email: email.trim(),
       password,
     };
+
+    if (mode === "reset") {
+      const redirectTo = `${window.location.origin}/auth`;
+
+      if (client) {
+        const result = await client.auth.resetPasswordForEmail(credentials.email, {
+          redirectTo,
+        });
+
+        setIsSubmitting(false);
+
+        if (result.error) {
+          setStatusText("正在重试...");
+          setIsSubmitting(true);
+
+          try {
+            await proxyAuth(`recover?redirect_to=${encodeURIComponent(redirectTo)}`, {
+              email: credentials.email,
+            });
+            setIsSubmitting(false);
+            setStatusText("重置邮件已发送，请查看邮箱。");
+          } catch (proxyError) {
+            setIsSubmitting(false);
+            setStatusText(proxyError instanceof Error ? proxyError.message : "邮件发送失败，请稍后再试。");
+          }
+          return;
+        }
+
+        setStatusText("重置邮件已发送，请查看邮箱。");
+        return;
+      }
+
+      try {
+        await proxyAuth(`recover?redirect_to=${encodeURIComponent(redirectTo)}`, {
+          email: credentials.email,
+        });
+        setIsSubmitting(false);
+        setStatusText("重置邮件已发送，请查看邮箱。");
+      } catch (error) {
+        setIsSubmitting(false);
+        setStatusText(error instanceof Error ? error.message : "邮件发送失败，请稍后再试。");
+      }
+      return;
+    }
 
     // Strategy 1: Try Supabase client directly
     if (client) {
@@ -124,33 +222,59 @@ export function AuthPanel({
           </button>
         ))}
       </div>
-      <h2 className="mt-6 font-display text-4xl font-black leading-tight">{title}</h2>
+      <h2 className="mt-6 font-display text-4xl font-black leading-tight">
+        {mode === "reset" ? "找回密码" : mode === "update" ? "设置新密码" : title}
+      </h2>
       <p className="mt-3 text-sm leading-7 text-campus-ink/64">{subtitle}</p>
       <div className="mt-6 grid gap-3">
-        <label className="grid gap-2 text-sm font-bold text-campus-ink/66">
-          邮箱
-          <input
-            value={email}
-            type="email"
-            autoComplete="email"
-            onChange={(event) => setEmail(event.target.value)}
-            className="h-12 rounded-2xl border border-campus-ink/10 bg-campus-paper/70 px-4 text-base font-normal text-campus-ink outline-none transition focus:border-campus-grass"
-          />
-        </label>
-        <label className="grid gap-2 text-sm font-bold text-campus-ink/66">
-          密码
-          <input
-            value={password}
-            type="password"
-            autoComplete={mode === "signin" ? "current-password" : "new-password"}
-            onChange={(event) => setPassword(event.target.value)}
-            className="h-12 rounded-2xl border border-campus-ink/10 bg-campus-paper/70 px-4 text-base font-normal text-campus-ink outline-none transition focus:border-campus-grass"
-          />
-        </label>
+        {mode !== "update" ? (
+          <label className="grid gap-2 text-sm font-bold text-campus-ink/66">
+            邮箱
+            <input
+              value={email}
+              type="email"
+              autoComplete="email"
+              onChange={(event) => setEmail(event.target.value)}
+              className="h-12 rounded-2xl border border-campus-ink/10 bg-campus-paper/70 px-4 text-base font-normal text-campus-ink outline-none transition focus:border-campus-grass"
+            />
+          </label>
+        ) : null}
+        {mode !== "reset" ? (
+          <label className="grid gap-2 text-sm font-bold text-campus-ink/66">
+            {mode === "update" ? "新密码" : "密码"}
+            <input
+              value={password}
+              type="password"
+              autoComplete={mode === "signin" ? "current-password" : "new-password"}
+              onChange={(event) => setPassword(event.target.value)}
+              className="h-12 rounded-2xl border border-campus-ink/10 bg-campus-paper/70 px-4 text-base font-normal text-campus-ink outline-none transition focus:border-campus-grass"
+            />
+          </label>
+        ) : null}
       </div>
       <Button className="mt-5 w-full" size="lg" onClick={handleSubmit} disabled={isSubmitting}>
-        {isSubmitting ? "请稍等" : mode === "signin" ? "登录" : "创建账号"}
+        {isSubmitting
+          ? "请稍等"
+          : mode === "signin"
+            ? "登录"
+            : mode === "signup"
+              ? "创建账号"
+              : mode === "reset"
+                ? "发送重置邮件"
+                : "更新密码"}
       </Button>
+      <div className="mt-3 flex flex-wrap items-center gap-3 text-sm font-bold text-campus-ink/56">
+        {mode === "signin" ? (
+          <button type="button" onClick={() => setMode("reset")} className="hover:text-campus-ink">
+            忘记密码？
+          </button>
+        ) : null}
+        {mode === "reset" || mode === "update" ? (
+          <button type="button" onClick={() => setMode("signin")} className="hover:text-campus-ink">
+            返回登录
+          </button>
+        ) : null}
+      </div>
       {statusText ? <p className="mt-3 text-sm font-bold text-campus-ink/62">{statusText}</p> : null}
     </section>
   );

@@ -16,6 +16,7 @@
 3. **Profile 页面卡片不显示**：修复 session 时序问题（加 `isReady` 检查）、Supabase 错误不再静默吞掉、加了 console.error 日志
 4. **滑卡页 session 时序**：同样加了 `isReady` 检查和错误日志
 5. **文档更新**：SUPABASE_MVP_SETUP.md 补充了预设数据 SQL、RLS 策略更新说明，并拆出 `supabase/` 目录下的可执行 SQL 文件
+6. **找回登录能力**：登录面板支持发送重置邮件和设置新密码，认证代理会保留 Supabase Auth query string
 
 ### 待在 Supabase Dashboard 手动完成（代码改不了，必须手动）
 
@@ -222,7 +223,7 @@
 - [x] Supabase 用户自动同步到本地 User
 - [x] 生产环境默认禁用演示登录
 - [x] Supabase-only 模式下前端可同步当前用户到 `"User"` 表
-- [ ] 找回登录能力
+- [x] 找回登录能力
 - [ ] 用户资料必填项校验
 - [ ] 管理员初始化与角色维护方案
 - [ ] 邮箱验证码 / OAuth / 校园邮箱白名单策略定稿
