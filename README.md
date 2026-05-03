@@ -135,6 +135,7 @@ OPENAI_COMPATIBLE_MODEL=
 ```bash
 pnpm lint
 pnpm typecheck
+pnpm test
 pnpm smoke
 pnpm --filter @linku/api build
 pnpm --filter @linku/web build

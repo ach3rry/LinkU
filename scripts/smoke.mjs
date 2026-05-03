@@ -22,6 +22,7 @@ function fileExists(relativePath) {
 }
 
 const requiredFiles = [
+  ".github/workflows/ci.yml",
   "README.md",
   "docs/TASKS.md",
   "docs/LOCAL_SETUP.md",
@@ -31,6 +32,8 @@ const requiredFiles = [
   "apps/api/prisma/schema.prisma",
   "apps/api/prisma/seed.ts",
   "apps/api/src/app.controller.ts",
+  "apps/api/src/safety/safety.service.test.ts",
+  "apps/api/src/subscriptions/subscription-policy.test.ts",
   "apps/web/src/app/page.tsx",
   "packages/shared/src/index.ts",
 ];
@@ -40,7 +43,7 @@ for (const file of requiredFiles) {
 }
 
 const packageJson = JSON.parse(read("package.json"));
-const requiredScripts = ["lint", "typecheck", "smoke", "db:generate", "db:push", "db:seed"];
+const requiredScripts = ["lint", "typecheck", "test", "smoke", "db:generate", "db:push", "db:seed"];
 
 for (const script of requiredScripts) {
   assert(Boolean(packageJson.scripts?.[script]), `Missing package script: ${script}`);
@@ -77,6 +80,7 @@ const verification = read("docs/VERIFICATION.md");
 const requiredVerificationCommands = [
   "pnpm lint",
   "pnpm typecheck",
+  "pnpm test",
   "pnpm smoke",
   "pnpm --filter @linku/api build",
   "pnpm --filter @linku/web build",
@@ -92,6 +96,11 @@ assert(
   deployment.includes("pnpm --filter @linku/api build"),
   "Deployment doc missing API build command",
 );
+
+const ci = read(".github/workflows/ci.yml");
+for (const command of ["pnpm lint", "pnpm typecheck", "pnpm test", "pnpm smoke"]) {
+  assert(ci.includes(command), `CI workflow missing command: ${command}`);
+}
 assert(
   deployment.includes("pnpm --filter @linku/web build"),
   "Deployment doc missing Web build command",
@@ -116,6 +125,8 @@ for (const item of [
   "- [x] seed 数据说明",
   "- [x] 基础测试",
   "- [x] 部署说明",
+  "- [x] GitHub Actions CI",
+  "- [x] API 最小单测",
 ]) {
   assert(tasks.includes(item), `TASKS missing completed item: ${item}`);
 }

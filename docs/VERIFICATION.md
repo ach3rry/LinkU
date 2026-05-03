@@ -11,6 +11,7 @@ git status --short --branch
 ```bash
 pnpm lint
 pnpm typecheck
+pnpm test
 pnpm smoke
 pnpm --filter @linku/api build
 pnpm --filter @linku/web build
@@ -20,6 +21,7 @@ pnpm --filter @linku/web build
 
 - `pnpm lint`：检查 apps 和 packages 的 ESLint 规则。
 - `pnpm typecheck`：检查 TypeScript 类型，Web 会先生成 Next.js 类型。
+- `pnpm test`：运行 API 最小单测，覆盖安全规则和会员策略。
 - `pnpm smoke`：检查阶段 9 交付文档、关键脚本、环境变量示例和 seed 数据存在。
 - `pnpm --filter @linku/api build`：验证 NestJS API 可构建。
 - `pnpm --filter @linku/web build`：验证 Next.js Web 可构建。
@@ -54,3 +56,17 @@ pnpm db:seed
 - `.env`、真实 API Key、数据库密码、真实 `JWT_SECRET` 没有出现在 `git diff`。
 - README、docs 和 `docs/TASKS.md` 已同步阶段状态。
 - 通过 Conventional Commits 提交，并在阶段完成后 push 到 GitHub。
+
+## CI 验证
+
+GitHub Actions 会在 push 到 `main` 和 pull request 时运行同一组核心命令：
+
+```bash
+pnpm db:generate
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm smoke
+pnpm --filter @linku/api build
+pnpm --filter @linku/web build
+```

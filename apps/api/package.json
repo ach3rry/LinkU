@@ -9,6 +9,7 @@
     "build": "nest build",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "test": "tsx --test \"src/**/*.test.ts\"",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts"
@@ -37,4 +38,3 @@
     "seed": "tsx prisma/seed.ts"
   }
 }
-
